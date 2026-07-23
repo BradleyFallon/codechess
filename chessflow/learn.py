@@ -130,7 +130,20 @@ def run_learn(
             assert reference_node.san is not None
             path = (*path, reference_node.san)
             node_index += 1
-            stream.write(f"\nCorrect: {selected_san}\n\n")
+            _clear(stream, clear_screen)
+            stream.write(
+                _status_line(
+                    line_number,
+                    len(lines),
+                    question,
+                    question_total,
+                    len(seen_rules),
+                )
+                + "\n"
+            )
+            stream.write(format_san_path(path) + "\n\n")
+            stream.write(render_board(session.board.chess_board) + "\n\n")
+            stream.write(f"Correct: {selected_san}\n\n")
             stream.write("NEW RULE\n" if is_new_rule else "REVIEW\n")
             if is_new_rule:
                 stream.write(action_key + "\n")

@@ -2,10 +2,12 @@ from io import StringIO
 from pathlib import Path
 import re
 
+import chess
+
 from chessflow import parse_flow
 from chessflow.conformance import run_conformance
 from chessflow.learn import run_learn
-from chessflow.quiz import expand_lines
+from chessflow.quiz import expand_lines, render_board
 from chessflow.repertoire import load_pgn
 from chessflow.reporting import summarize_conformance
 
@@ -51,6 +53,26 @@ def test_first_encounter_displays_new_rule_and_reinforcement() -> None:
     assert "NEW RULE\nd.develop.d4" in rendered
     assert "Claim central space and keep the c-pawn flexible." in rendered
     assert "This keeps the c-pawn available for c3 or c4." in rendered
+
+
+def test_correct_answer_renders_the_moved_piece_before_confirmation() -> None:
+    output = StringIO()
+    expected_board = chess.Board()
+    expected_board.push_san("d4")
+
+    run_learn(
+        parse_flow(FLOW_SOURCE),
+        load_pgn("1. d4 *"),
+        input_fn=_answers("d4", ""),
+        output=output,
+        clear_screen=False,
+    )
+
+    rendered = output.getvalue()
+    board_index = rendered.index(render_board(expected_board))
+    correct_index = rendered.index("Correct: d4")
+    assert board_index < correct_index
+    assert "1.d4\n\n" in rendered[board_index - 10 : board_index]
 
 
 def test_repeated_rule_displays_review() -> None:
