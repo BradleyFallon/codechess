@@ -26,6 +26,23 @@ def test_flow_schema_parses_with_direct_domain_parity() -> None:
     assert first.why == "claim the center"
 
 
+def test_retreat_action_parses_with_its_own_canonical_key() -> None:
+    definition = parse_flow(
+        """
+        flow retreat
+        version 0.1
+        side white
+        nq:
+            retreat.c3:
+        """
+    )
+
+    action = definition.rules[0].action
+    assert action.kind is ActionKind.RETREAT
+    assert action.target_square == chess.C3
+    assert action.canonical_key == "nq.retreat.c3"
+
+
 def test_parser_rejects_undeclared_set_flags() -> None:
     with pytest.raises(FlowSyntaxError, match="undeclared flags"):
         parse_flow(

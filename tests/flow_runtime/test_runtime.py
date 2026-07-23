@@ -363,3 +363,28 @@ def test_piece_qualified_legal_capture_query() -> None:
 
     assert evaluate(parse_expression("canCaptureOn(d5)"), context)
     assert evaluate(parse_expression("e.canCaptureOn(d5)"), context)
+
+
+def test_retreat_resolves_like_develop_without_marking_piece_developed() -> None:
+    definition = parse_flow(
+        """
+        flow retreat
+        version 0.1
+        side white
+        nq:
+            retreat.c3:
+        """
+    )
+    board = FlowBoard()
+    for san in ("Nc3", "a6", "Nb5", "e6"):
+        board.push_san(san)
+    flow = FlowRuntime(definition, board)
+
+    candidates = flow.evaluate_turn(board)
+
+    assert len(candidates) == 1
+    assert candidates[0].move == chess.Move.from_uci("b5c3")
+    flow.execute(candidates[0], board)
+    assert board.flow_piece("nq").square == chess.C3
+    assert not board.flow_piece("nq").has_developed
+    assert flow.executed_action_keys == {"nq.retreat.c3"}

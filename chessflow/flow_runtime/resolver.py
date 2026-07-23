@@ -13,7 +13,7 @@ class AmbiguousActionError(RuntimeError):
 def resolve_action(action: Action, piece: Piece, board: FlowBoard) -> chess.Move | None:
     if not piece.is_alive:
         return None
-    if action.kind is ActionKind.DEVELOP:
+    if action.kind in {ActionKind.DEVELOP, ActionKind.RETREAT}:
         return resolve_develop(action, piece, board)
     if action.kind is ActionKind.CAPTURE:
         return resolve_capture(action, piece, board)

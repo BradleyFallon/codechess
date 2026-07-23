@@ -8,6 +8,7 @@ import chess
 
 class ActionKind(Enum):
     DEVELOP = "develop"
+    RETREAT = "retreat"
     CAPTURE = "capture"
     CASTLE = "castle"
 
