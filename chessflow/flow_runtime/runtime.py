@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from chessflow.chess_model import FlowBoard, Piece
 from chessflow.flow_language.ast import FlowDefinition
 from chessflow.flow_runtime.candidate import Candidate
@@ -11,6 +13,9 @@ from chessflow.flow_runtime.rule import (
     RuleStatus,
 )
 
+if TYPE_CHECKING:
+    from chessflow.session.snapshot import FlowRuntimeSnapshot
+
 
 class FlowRuntime:
     def __init__(self, definition: FlowDefinition, board: FlowBoard) -> None:
@@ -18,6 +23,7 @@ class FlowRuntime:
         self.flags: set[str] = set()
         self.executed_action_keys: set[str] = set()
         self.reached_terminals: list[str] = []
+        self._rules_by_action_key: dict[str, RuleRuntime] = {}
         self._bind_rules_to_pieces(board)
 
     def _bind_rules_to_pieces(self, board: FlowBoard) -> None:
@@ -36,6 +42,7 @@ class FlowRuntime:
             )
             runtime = RuleRuntime(definition, status)
             piece.rules.add(runtime)
+            self._rules_by_action_key[definition.action.canonical_key] = runtime
             if status is RuleStatus.ACTIVE:
                 self._record_activation(runtime, piece, board)
 
@@ -113,6 +120,83 @@ class FlowRuntime:
         self.flags.update(rule.definition.set_flags)
         if rule.definition.terminal is not None:
             self.reached_terminals.append(rule.definition.terminal)
+
+    def snapshot(self) -> FlowRuntimeSnapshot:
+        from chessflow.session.snapshot import (
+            FlowRuntimeSnapshot,
+            RuleRuntimeSnapshot,
+        )
+
+        return FlowRuntimeSnapshot(
+            flags=frozenset(self.flags),
+            executed_action_keys=frozenset(self.executed_action_keys),
+            reached_terminals=tuple(self.reached_terminals),
+            rules=tuple(
+                RuleRuntimeSnapshot(
+                    action_key=rule.definition.action.canonical_key,
+                    status=rule.status,
+                    activated_at_ply=rule.activated_at_ply,
+                    move_counts_at_activation=tuple(
+                        sorted(rule.move_counts_at_activation.items())
+                    ),
+                    executed_at_ply=rule.executed_at_ply,
+                    expired_at_ply=rule.expired_at_ply,
+                )
+                for rule in self._rules_in_definition_order()
+            ),
+        )
+
+    def _rules_in_definition_order(self) -> tuple[RuleRuntime, ...]:
+        return tuple(
+            self._rules_by_action_key[definition.action.canonical_key]
+            for definition in self.definition.rules
+        )
+
+    @classmethod
+    def restore(
+        cls,
+        definition: FlowDefinition,
+        board: FlowBoard,
+        snapshot: FlowRuntimeSnapshot,
+    ) -> FlowRuntime:
+        expected_keys = tuple(
+            rule.action.canonical_key for rule in definition.rules
+        )
+        snapshot_keys = tuple(rule.action_key for rule in snapshot.rules)
+        if snapshot_keys != expected_keys:
+            raise ValueError(
+                "Runtime snapshot rules do not match the flow definition"
+            )
+        unknown_flags = snapshot.flags - definition.declared_flags
+        if unknown_flags:
+            raise ValueError(
+                f"Runtime snapshot contains undeclared flags: {sorted(unknown_flags)}"
+            )
+        unknown_actions = snapshot.executed_action_keys - set(expected_keys)
+        if unknown_actions:
+            raise ValueError(
+                "Runtime snapshot contains unknown executed actions: "
+                f"{sorted(unknown_actions)}"
+            )
+
+        runtime = cls(definition, board)
+        runtime.flags = set(snapshot.flags)
+        runtime.executed_action_keys = set(snapshot.executed_action_keys)
+        runtime.reached_terminals = list(snapshot.reached_terminals)
+        for rule_snapshot in snapshot.rules:
+            rule = runtime._rules_by_action_key[rule_snapshot.action_key]
+            owner = board.flow_piece(rule.definition.action.owner_code)
+            assert owner.rules is not None
+            if rule.status is not rule_snapshot.status:
+                owner.rules.transition(rule, rule_snapshot.status)
+            rule.activated_at_ply = rule_snapshot.activated_at_ply
+            rule.move_counts_at_activation = dict(
+                rule_snapshot.move_counts_at_activation
+            )
+            rule.executed_at_ply = rule_snapshot.executed_at_ply
+            rule.expired_at_ply = rule_snapshot.expired_at_ply
+
+        return runtime
 
 
 def activate_rule(rule: RuleRuntime, piece: Piece, board: FlowBoard) -> None:
