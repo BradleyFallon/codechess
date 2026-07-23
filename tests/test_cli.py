@@ -64,3 +64,28 @@ def test_bare_benchmark_names_resolve_from_examples(
     assert "Disagreements: 2" in captured.out
     assert "Dead ends: 2" in captured.out
     assert captured.err == ""
+
+
+def test_second_pass_ruleset_cleanly_matches_the_full_benchmark(
+    monkeypatch,
+    capsys,
+) -> None:
+    repository = Path(__file__).parents[1]
+    monkeypatch.chdir(repository)
+
+    exit_code = main(
+        [
+            "test-pgn",
+            "accelerated_london_second_pass.flow",
+            "accelerated_london_ruleset_benchmark_v2.pgn",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Positions tested: 84" in captured.out
+    assert "Matches: 84" in captured.out
+    assert "Ambiguities: 0" in captured.out
+    assert "Disagreements: 0" in captured.out
+    assert "Dead ends: 0" in captured.out
+    assert captured.err == ""
