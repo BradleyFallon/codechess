@@ -23,8 +23,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     try:
-        definition = parse_flow(args.flow.read_text())
-        repertoire = load_pgn(args.pgn.read_text())
+        flow_path = _resolve_input(args.flow)
+        pgn_path = _resolve_input(args.pgn)
+        definition = parse_flow(flow_path.read_text())
+        repertoire = load_pgn(pgn_path.read_text())
         result = run_conformance(definition, repertoire)
     except (OSError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
@@ -32,3 +34,10 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     print(render_text_report(result), end="")
     return 0
+
+
+def _resolve_input(path: Path) -> Path:
+    if path.exists() or path.is_absolute() or path.parent != Path():
+        return path
+    example_path = Path("examples") / path
+    return example_path if example_path.exists() else path

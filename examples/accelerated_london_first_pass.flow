@@ -1,0 +1,346 @@
+flow: accelerated-london-first-pass
+version: 0.1
+side: white
+
+# This is intentionally a first practical ruleset, not a perfect solution.
+# It covers the major structural branches and several tactical overrides.
+
+flags:
+    active-c4
+    traditional
+    fork-launched
+
+conditions:
+    immediate-c5 =
+        at(d, d4) &&
+        square.c5.has(enemy.pawn) &&
+        square.d5.empty()
+
+    benoni =
+        played(d.develop.d5) &&
+        !played(bq.develop.f4)
+
+    fianchetto =
+        played(bq.develop.f4) &&
+        square.g6.has(enemy.pawn) &&
+        !benoni
+
+    early-bf5 =
+        at(bq, f4) &&
+        square.d5.has(enemy.pawn) &&
+        square.f5.has(enemy.bishop)
+
+    quiet-classical =
+        square.d5.has(enemy.pawn) &&
+        square.e6.has(enemy.pawn) &&
+        square.c8.has(enemy.bishop)
+
+    delayed-c5 =
+        square.d5.has(enemy.pawn) &&
+        square.c5.has(enemy.pawn)
+
+    early-e6 =
+        square.e6.has(enemy.pawn) &&
+        square.f6.empty() &&
+        !e.developed() &&
+        !nk.developed()
+
+    b6-setup =
+        square.b6.has(enemy.pawn) &&
+        !nq.developed()
+
+    b2-pressure =
+        square.b6.has(enemy.queen) &&
+        square.b2.has(ours.pawn)
+
+    pin-on-f3 =
+        square.g4.has(enemy.bishop)
+
+    fork-base =
+        at(bq, f4) &&
+        square.h6.has(enemy.pawn) &&
+        square.d5.has(enemy.pawn) &&
+        square.c7.has(enemy.pawn) &&
+        square.e8.has(enemy.king) &&
+        square.a8.has(enemy.rook) &&
+        !active-c4
+
+    fork-live =
+        fork-base &&
+        (at(nq, c3) || at(nq, b5))
+
+# Tactical and forcing responses come first in source order.
+
+bq:
+    develop.g3:
+        when: played(bq.develop.f4)
+        if:
+            at(bq, f4) &&
+            square.d6.has(enemy.bishop)
+        why: Preserve the London bishop when Black challenges it with Bd6.
+
+    develop.f4:
+        when: d.developed()
+        until: played(d.develop.d5)
+        if: !immediate-c5
+        why: Develop outside the pawn chain before committing e3.
+
+h:
+    capture.g3:
+        when: captured(bq)
+        if:
+            square.g3.has(enemy.bishop) &&
+            canCaptureOn(g3)
+        why: Recapture on g3 and open the h-file.
+
+    develop.h3:
+        when: nk.developed()
+        if: pin-on-f3
+        why: Ask the pinning bishop to decide.
+
+q:
+    capture.f3:
+        when: captured(nk)
+        if:
+            square.f3.has(enemy.bishop) &&
+            canCaptureOn(f3)
+        why: Recapture the bishop after Bxf3.
+
+    capture.b6:
+        when: q.developed()
+        if:
+            at(q, b3) &&
+            square.b6.has(enemy.queen) &&
+            canCaptureOn(b6)
+        why: Accept the queen exchange when Black answers Qb3 with Qb6.
+
+    develop.c1:
+        when: b2-pressure
+        if: at(q, d1)
+        why: Defend b2 against concrete Qb6 pressure.
+
+    develop.a4:
+        when:
+            active-c4 &&
+            nq.developed()
+        if:
+            at(q, d1) &&
+            square.c6.has(enemy.knight) &&
+            square.e8.has(enemy.king)
+        why: Use Qa4 to pin the c6 knight to the uncastled king.
+
+    develop.b3:
+        when:
+            active-c4 &&
+            nq.developed()
+        if:
+            at(q, d1) &&
+            !square.c6.has(enemy.knight) &&
+            !square.c8.has(enemy.bishop) &&
+            square.b7.has(enemy.pawn)
+        why: Pressure b7 after the c8 bishop leaves.
+
+    develop.d2:
+        when: played(e.develop.e4)
+        if:
+            fianchetto &&
+            at(q, d1)
+        why: Coordinate the broad center and prepare queenside castling.
+
+    develop.e2:
+        when: played(nk.develop.e5)
+        if: at(q, d1)
+        why: Support the central break after Ne5.
+
+c:
+    develop.c3:
+        when: bq.developed()
+        if:
+            square.b4.has(enemy.bishop) ||
+            (
+                quiet-classical &&
+                bk.developed() &&
+                square.c5.has(enemy.pawn)
+            ) ||
+            (
+                delayed-c5 &&
+                nk.developed() &&
+                nq.developed() &&
+                square.e6.has(enemy.pawn) &&
+                (!b2-pressure || at(q, c1))
+            )
+        set: traditional
+        why: Use c3 for the stable London triangle or to answer Bb4+.
+
+    develop.c4:
+        when:
+            bq.developed() &&
+            e.developed()
+        if: early-bf5
+        set: active-c4
+        why: Challenge d5 after Black develops the c8 bishop early.
+
+nq:
+    capture.a8:
+        when: played(nq.capture.c7)
+        if:
+            at(nq, c7) &&
+            square.a8.has(enemy.rook) &&
+            canCaptureOn(a8)
+        why: Complete the c7 fork by taking the rook.
+
+    capture.c7:
+        when: fork-launched
+        if:
+            at(nq, b5) &&
+            at(bq, f4) &&
+            bq.controls(c7) &&
+            square.c7.has(enemy.pawn) &&
+            square.e8.has(enemy.king) &&
+            square.a8.has(enemy.rook) &&
+            square.a6.empty() &&
+            !square.b4.has(enemy.bishop) &&
+            !square.d6.has(enemy.bishop) &&
+            !traditional &&
+            canCaptureOn(c7)
+        why: Execute the checking fork when c7 remains vulnerable.
+
+    develop.b5:
+        when: nq.developed()
+        if:
+            at(nq, c3) &&
+            fork-base &&
+            square.a6.empty() &&
+            !square.b4.has(enemy.bishop) &&
+            !square.d6.has(enemy.bishop)
+        set: fork-launched
+        why: Prepare Nxc7+ while Bf4 protects c7.
+
+    develop.c3:
+        when:
+            played(d.develop.d5) ||
+            fianchetto ||
+            active-c4 ||
+            b6-setup ||
+            (
+                e.developed() &&
+                fork-base
+            )
+        why: Use Nc3 for c4, e4, b6, Benoni, and fork structures.
+
+    develop.d2:
+        when: e.developed()
+        if:
+            quiet-classical ||
+            (
+                delayed-c5 &&
+                nk.developed()
+            )
+        why: Pair Nbd2 with the traditional c3 structure.
+
+e:
+    develop.e4:
+        when: nq.developed()
+        if: benoni || fianchetto
+        why: Build a broad center in the Benoni and fianchetto branches.
+
+    develop.e3:
+        when: bq.developed()
+        if:
+            !benoni &&
+            !fianchetto &&
+            !early-e6 &&
+            !b6-setup &&
+            !fork-live
+        why: Support d4 after the London bishop develops.
+
+nk:
+    develop.f3:
+        when: bq.developed() || played(e.develop.e4)
+        if:
+            early-e6 ||
+            pin-on-f3 ||
+            benoni ||
+            (
+                delayed-c5 &&
+                !active-c4
+            ) ||
+            (
+                nq.developed() &&
+                quiet-classical &&
+                !square.d6.has(enemy.bishop)
+            ) ||
+            (
+                active-c4 &&
+                q.developed() &&
+                !square.b6.has(enemy.queen)
+            ) ||
+            (
+                square.b6.has(enemy.pawn) &&
+                e.developed() &&
+                nq.developed()
+            ) ||
+            (
+                fork-launched &&
+                (
+                    square.a6.has(enemy.knight) ||
+                    traditional
+                )
+            )
+        why: Develop Nf3 when its branch-specific prerequisites are met.
+
+    develop.e5:
+        when:
+            nk.developed() &&
+            played(k.castle.kingside)
+        if:
+            traditional &&
+            at(nk, f3) &&
+            canMoveTo(e5)
+        why: Occupy e5 after completing the traditional setup.
+
+bk:
+    develop.e2:
+        when: nk.developed() || played(q.capture.f3)
+        if:
+            active-c4 ||
+            benoni ||
+            played(q.capture.f3)
+        why: Use Be2 in active, Benoni, and resolved pin structures.
+
+    develop.d3:
+        when: nk.developed()
+        if:
+            (
+                at(nq, d2) &&
+                !delayed-c5
+            ) ||
+            traditional ||
+            (
+                square.b6.has(enemy.pawn) &&
+                e.developed()
+            )
+        why: Develop toward the normal London attacking setup.
+
+k:
+    castle.queenside:
+        when: played(q.develop.d2)
+        if: fianchetto
+        why: Castle long in the committed Nc3-e4 fianchetto branch.
+
+    castle.kingside:
+        when: bk.developed()
+        if: !fianchetto
+        why: Complete development and secure the king.
+
+d:
+    develop.d4:
+        why: Begin the repertoire with d4.
+
+    develop.d5:
+        when:
+            played(d.develop.d4) &&
+            square.c5.has(enemy.pawn) &&
+            square.d5.empty()
+        if: at(d, d4)
+        why: Gain space when Black plays c5 before establishing d5.

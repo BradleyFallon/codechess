@@ -39,3 +39,28 @@ def test_test_pgn_command_runs_end_to_end(
     captured = capsys.readouterr()
     assert invalid_exit_code != 0
     assert "error:" in captured.err
+
+
+def test_bare_benchmark_names_resolve_from_examples(
+    monkeypatch,
+    capsys,
+) -> None:
+    repository = Path(__file__).parents[1]
+    monkeypatch.chdir(repository)
+
+    exit_code = main(
+        [
+            "test-pgn",
+            "accelerated_london_first_pass.flow",
+            "accelerated_london_ruleset_benchmark_v2.pgn",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Positions tested: 81" in captured.out
+    assert "Matches: 65" in captured.out
+    assert "Ambiguities: 12" in captured.out
+    assert "Disagreements: 2" in captured.out
+    assert "Dead ends: 2" in captured.out
+    assert captured.err == ""
