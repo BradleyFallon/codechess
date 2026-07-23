@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from chessflow.flow_runtime.action import Action
 
 if TYPE_CHECKING:
+    from chessflow.chess_model import FlowBoard
     from chessflow.flow_language.expressions import Expression
 
 
@@ -34,9 +35,21 @@ class RuleRuntime:
     definition: RuleDefinition
     status: RuleStatus
     activated_at_ply: int | None = None
-    owner_move_count_at_activation: int | None = None
+    move_counts_at_activation: dict[str, int] = field(default_factory=dict)
     executed_at_ply: int | None = None
     expired_at_ply: int | None = None
+
+
+def moved_since_activation(
+    rule: RuleRuntime, board: FlowBoard, piece_code: str
+) -> bool:
+    try:
+        baseline = rule.move_counts_at_activation[piece_code]
+    except KeyError as exc:
+        raise RuntimeError(
+            f"Rule has no activation baseline for flow piece {piece_code!r}"
+        ) from exc
+    return board.flow_piece(piece_code).move_count > baseline
 
 
 @dataclass(slots=True)

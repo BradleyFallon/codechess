@@ -13,7 +13,7 @@ from chessflow.flow_language.expressions import (
     Name,
     Not,
 )
-from chessflow.flow_runtime.rule import RuleRuntime
+from chessflow.flow_runtime.rule import RuleRuntime, moved_since_activation
 
 if TYPE_CHECKING:
     from chessflow.flow_runtime.runtime import FlowRuntime
@@ -83,21 +83,35 @@ def _evaluate_name(name: str, context: EvaluationContext) -> bool:
 
 
 def _evaluate_call(call: Call, context: EvaluationContext) -> bool:
-    name = call.name.lower()
+    receiver, name = _call_receiver_and_name(call)
     args = tuple(_argument_name(argument) for argument in call.arguments)
+    if receiver is not None:
+        if args:
+            raise EvaluationError(
+                f"{call.name}() expects 0 argument(s), received {len(args)}"
+            )
+        if name == "moved":
+            if context.rule is None:
+                raise EvaluationError(f"{call.name}() needs a contextual rule")
+            return moved_since_activation(context.rule, context.board, receiver)
+        if name == "developed":
+            return context.board.piece_ref(receiver).has_developed
+        raise EvaluationError(f"Unknown predicate: {call.name}()")
     if name == "at":
         if len(args) == 1:
             return context.owner.at(_square(args[0]))
         _arity(call, args, 2)
         return context.board.piece_ref(args[0]).at(_square(args[1]))
-    if name in {"moved", "hasmoved"}:
-        if not args:
-            if context.rule is None:
-                raise EvaluationError("moved() needs a contextual rule")
-            baseline = context.rule.owner_move_count_at_activation
-            return baseline is not None and context.owner.move_count > baseline
-        _arity(call, args, 1)
-        return context.board.piece_ref(args[0]).has_moved
+    if name == "moved":
+        _arity(call, args, 0)
+        if context.rule is None:
+            raise EvaluationError("moved() needs a contextual rule")
+        return moved_since_activation(
+            context.rule, context.board, context.owner.flow_code or ""
+        )
+    if name == "developed":
+        _arity(call, args, 0)
+        return context.owner.has_developed
     if name == "unmoved":
         _arity(call, args, 1)
         return not context.board.piece_ref(args[0]).has_moved
@@ -147,6 +161,13 @@ def _evaluate_call(call: Call, context: EvaluationContext) -> bool:
         _arity(call, args, 1)
         return args[0] in context.flow.flags
     raise EvaluationError(f"Unknown predicate: {call.name}()")
+
+
+def _call_receiver_and_name(call: Call) -> tuple[str | None, str]:
+    parts = call.name.lower().rsplit(".", maxsplit=1)
+    if len(parts) == 1:
+        return None, parts[0]
+    return parts[0], parts[1]
 
 
 def _argument_name(expression: Expression) -> str:

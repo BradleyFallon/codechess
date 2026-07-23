@@ -5,7 +5,11 @@ from chessflow.flow_language.ast import FlowDefinition
 from chessflow.flow_runtime.candidate import Candidate
 from chessflow.flow_runtime.evaluator import EvaluationContext, evaluate
 from chessflow.flow_runtime.resolver import resolve_action
-from chessflow.flow_runtime.rule import PieceRuleCollection, RuleRuntime, RuleStatus
+from chessflow.flow_runtime.rule import (
+    PieceRuleCollection,
+    RuleRuntime,
+    RuleStatus,
+)
 
 
 class FlowRuntime:
@@ -112,16 +116,22 @@ class FlowRuntime:
 
 
 def activate_rule(rule: RuleRuntime, piece: Piece, board: FlowBoard) -> None:
-    """Record the owner-relative history baseline for an active rule."""
+    """Record flow-piece history baselines for an active rule."""
     rule.status = RuleStatus.ACTIVE
     rule.activated_at_ply = board.ply
-    rule.owner_move_count_at_activation = piece.move_count
+    rule.move_counts_at_activation = {
+        code: board.piece_by_id(piece_id).move_count
+        for code, piece_id in board.flow_pieces.items()
+    }
 
 
 def implicit_until_moved(rule: RuleRuntime, owner: Piece) -> bool:
-    baseline = rule.owner_move_count_at_activation
-    if baseline is None:
-        raise RuntimeError("Rule is not active")
+    if owner.flow_code is None:
+        raise RuntimeError("Rule owner has no flow piece code")
+    try:
+        baseline = rule.move_counts_at_activation[owner.flow_code]
+    except KeyError as exc:
+        raise RuntimeError("Rule is not active") from exc
     return owner.move_count > baseline
 
 

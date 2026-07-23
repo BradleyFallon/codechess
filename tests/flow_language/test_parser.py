@@ -91,3 +91,36 @@ def test_parser_rejects_unknown_condition_names() -> None:
                     if: misspelled-condition
             """
         )
+
+
+@pytest.mark.parametrize("predicate", ("moved(d)", "hasmoved()", "d.moved(e)"))
+def test_parser_rejects_removed_moved_forms(predicate: str) -> None:
+    with pytest.raises(FlowSyntaxError):
+        parse_flow(
+            f"""
+            flow removed-moved-form
+            version 0.1
+            side white
+            d:
+                develop.d4:
+                    if: {predicate}
+            """
+        )
+
+
+def test_parser_accepts_contextual_and_explicit_flow_history_predicates() -> None:
+    definition = parse_flow(
+        """
+        flow history-predicates
+        version 0.1
+        side white
+        d:
+            develop.d4:
+                if: !moved() && !developed()
+        c:
+            develop.c3:
+                when: d.moved() || d.developed()
+        """
+    )
+
+    assert len(definition.rules) == 2

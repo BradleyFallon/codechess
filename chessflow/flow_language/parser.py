@@ -302,8 +302,8 @@ class FlowParser:
             raise FlowSyntaxError(f"Unsupported expression in {location}")
         arities: dict[str, set[int]] = {
             "at": {1, 2},
-            "moved": {0, 1},
-            "hasmoved": {0, 1},
+            "moved": {0},
+            "developed": {0},
             "unmoved": {1},
             "captured": {1},
             "attacked": {0, 1, 2},
@@ -313,7 +313,13 @@ class FlowParser:
             "cancaptureon": {1},
             "flag": {1},
         }
-        predicate = expression.name.lower()
+        call_parts = expression.name.lower().rsplit(".", maxsplit=1)
+        receiver = call_parts[0] if len(call_parts) == 2 else None
+        predicate = call_parts[-1]
+        if receiver is not None and predicate not in {"moved", "developed"}:
+            raise FlowSyntaxError(
+                f"Unknown predicate {expression.name}() in {location}"
+            )
         if predicate not in arities:
             raise FlowSyntaxError(
                 f"Unknown predicate {expression.name}() in {location}"

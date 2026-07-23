@@ -3,7 +3,9 @@ from pathlib import Path
 import chess
 
 from chessflow import FlowBoard, FlowRuntime, parse_flow
+from chessflow.flow_language.expressions import parse_expression
 from chessflow.flow_runtime import RuleStatus
+from chessflow.flow_runtime.evaluator import EvaluationContext, evaluate
 from chessflow.simulation import FlowRunner, TurnOutcome
 
 
@@ -68,8 +70,9 @@ def test_all_candidates_are_reported_before_source_order_selection() -> None:
     assert report.had_ambiguity
     assert [candidate.move.uci() for candidate in report.candidates] == ["d2d4", "e2e4"]
     assert report.selected is report.candidates[0]
-    assert board.flow_piece("e").rules is not None
-    assert len(board.flow_piece("e").rules.active) == 1
+    e_rules = board.flow_piece("e").rules
+    assert e_rules is not None
+    assert len(e_rules.active) == 1
 
 
 def test_implicit_until_expires_after_owner_moves_since_activation() -> None:
@@ -92,8 +95,9 @@ def test_implicit_until_expires_after_owner_moves_since_activation() -> None:
 
     assert rule.status is RuleStatus.EXPIRED
     assert rule.expired_at_ply == 1
-    assert board.flow_piece("c").rules is not None
-    assert rule in board.flow_piece("c").rules.expired
+    c_rules = board.flow_piece("c").rules
+    assert c_rules is not None
+    assert rule in c_rules.expired
 
 
 def test_explicit_contextual_until_moved_has_rule_relative_semantics() -> None:
@@ -116,3 +120,131 @@ def test_explicit_contextual_until_moved_has_rule_relative_semantics() -> None:
     board.push_uci("c2c4")
     flow.expire_rules(board)
     assert rule.status is RuleStatus.EXPIRED
+
+
+def test_developed_tracks_executed_develop_actions_not_current_square() -> None:
+    definition = parse_flow(
+        """
+        flow developed-history
+        version 0.1
+        side white
+        nk:
+            develop.f3:
+        c:
+            develop.c3:
+                when: nk.developed()
+        """
+    )
+    board = FlowBoard()
+    flow = FlowRuntime(definition, board)
+    runner = FlowRunner(flow, board)
+
+    report = runner.play_flow_turn()
+    assert report.selected is not None
+    assert report.selected.move == chess.Move.from_uci("g1f3")
+    board.push_san("a6")
+    board.push_san("Ng1")
+    board.push_san("a5")
+
+    knight = board.flow_piece("nk")
+    knight_rule = knight.rules.executed[0]  # type: ignore[union-attr]
+    c_rule = board.flow_piece("c").rules.pending[0]  # type: ignore[union-attr]
+    context = EvaluationContext(board, flow, c_rule)
+
+    assert knight.square == chess.G1
+    assert knight.has_developed
+    assert evaluate(parse_expression("nk.developed()"), context)
+    assert evaluate(
+        parse_expression("developed()"),
+        EvaluationContext(board, flow, knight_rule),
+    )
+    flow.activate_rules(board)
+    assert c_rule.status is RuleStatus.ACTIVE
+
+
+def test_explicit_moved_is_relative_to_another_rules_activation() -> None:
+    definition = parse_flow(
+        """
+        flow cross-piece-movement
+        version 0.1
+        side white
+        c:
+            develop.c3:
+                when: at(d, d4)
+                until: d.moved()
+        """
+    )
+    board = FlowBoard()
+    flow = FlowRuntime(definition, board)
+    rule = board.flow_piece("c").rules.pending[0]  # type: ignore[union-attr]
+
+    board.push_san("d4")
+    flow.activate_rules(board)
+
+    assert rule.status is RuleStatus.ACTIVE
+    assert rule.move_counts_at_activation["d"] == 1
+    flow.expire_rules(board)
+    assert rule.status is RuleStatus.ACTIVE
+
+    board.push_san("a6")
+    board.push_san("d5")
+    flow.expire_rules(board)
+
+    assert rule.status is RuleStatus.EXPIRED
+
+
+def test_contextual_moved_is_false_at_activation_then_true_after_owner_moves() -> None:
+    definition = parse_flow(
+        """
+        flow contextual-movement
+        version 0.1
+        side white
+        c:
+            develop.c3:
+                if: moved()
+        """
+    )
+    board = FlowBoard()
+    flow = FlowRuntime(definition, board)
+    rule = board.flow_piece("c").rules.active[0]  # type: ignore[union-attr]
+    context = EvaluationContext(board, flow, rule)
+
+    assert not evaluate(parse_expression("moved()"), context)
+    board.push_san("c4")
+    assert evaluate(parse_expression("moved()"), context)
+
+
+def test_explicit_and_implicit_until_moved_expire_together() -> None:
+    implicit_definition = parse_flow(
+        """
+        flow implicit
+        version 0.1
+        side white
+        c:
+            develop.c3:
+        """
+    )
+    explicit_definition = parse_flow(
+        """
+        flow explicit
+        version 0.1
+        side white
+        c:
+            develop.c3:
+                until: moved()
+        """
+    )
+    implicit_board = FlowBoard()
+    explicit_board = FlowBoard()
+    implicit_flow = FlowRuntime(implicit_definition, implicit_board)
+    explicit_flow = FlowRuntime(explicit_definition, explicit_board)
+    implicit_rule = implicit_board.flow_piece("c").rules.active[0]  # type: ignore[union-attr]
+    explicit_rule = explicit_board.flow_piece("c").rules.active[0]  # type: ignore[union-attr]
+
+    implicit_board.push_san("c4")
+    explicit_board.push_san("c4")
+    implicit_flow.expire_rules(implicit_board)
+    explicit_flow.expire_rules(explicit_board)
+
+    assert implicit_rule.status is RuleStatus.EXPIRED
+    assert explicit_rule.status is RuleStatus.EXPIRED

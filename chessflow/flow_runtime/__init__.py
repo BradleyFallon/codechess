@@ -5,6 +5,7 @@ from chessflow.flow_runtime.rule import (
     RuleDefinition,
     RuleRuntime,
     RuleStatus,
+    moved_since_activation,
 )
 
 __all__ = [
@@ -23,6 +24,7 @@ __all__ = [
     "evaluate_flow_turn",
     "expire_rules",
     "implicit_until_moved",
+    "moved_since_activation",
 ]
 
 
