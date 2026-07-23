@@ -1,0 +1,70 @@
+[Event "Accelerated London Ruleset Benchmark"]
+[Site "CodeChess"]
+[Date "2026.07.23"]
+[Round "-"]
+[White "Accelerated London"]
+[Black "Benchmark Tree"]
+[Result "*"]
+[Annotator "CodeChess benchmark draft"]
+[Opening "London System"]
+
+1. d4
+   {Benchmark: White begins with d4 before choosing a structure.}
+   1... d5
+(1... c5 2. d5
+{Immediate c5 before d5 should trigger d5 and a Benoni-style space setup, not c3.}
+2... Nf6 3. Nc3 d6 4. e4 g6 5. Nf3 Bg7 6. Be2 O-O 7. O-O)
+(1... Nf6 2. Bf4 d5
+(2... g6 3. Nc3
+{The kingside fianchetto should trigger the Nc3-e4 structure.}
+3... Bg7 4. e4 d6 5. Qd2 O-O 6. O-O-O c5 7. d5)
+(2... b6 3. Nc3 d5 4. e3 Bb7 5. Nf3 e6 6. Bd3 Bd6 7. Bg3
+{Preserve the London bishop when Black challenges it.}
+7... O-O 8. O-O)
+3. Nc3 e6 4. Nb5
+{Fork preparation: Bf4 supports c7 and the knight threatens Nxc7+.}
+4... Na6
+{Na6 defends c7, so White should not force the fork.}
+    (4... Be7 5. Nxc7+ Kf8 6. Nxa8
+    {If Black ignores the fork, execute Nxc7+ and take the a8 rook.})
+    (4... c6 5. Nc3
+    {When c7 advances and attacks the knight, the fork opportunity expires.})
+    (4... Bb4+ 5. c3 Be7 6. Nf3 O-O
+    {Answer the forcing check before continuing normal development.})
+    (4... Bd6 5. Bg3 Bxg3 6. hxg3
+    {Black removes the bishop supporting c7, so the fork must be recalculated.})
+5. Nf3 c6 6. Nc3 Bd6 7. Bg3 O-O)
+2. Bf4 Nf6
+(2... c5 3. e3 Nc6 4. Nf3 Nf6 5. Nbd2 Qb6 6. Qc1
+{Delayed c5 with Qb6 creates concrete pressure on b2; Qc1 is a defensive queen response.}
+6... e6 7. c3 Be7 8. Bd3 O-O 9. O-O)
+(2... Bf5 3. e3 Nf6 4. c4
+{The c8 bishop has left and d5 can be challenged, so choose c4 instead of c3.}
+4... e6 5. Nc3 c6 6. Qb3
+{Qb3 pressures b7 while the c4 pawn pressures d5.}
+6... Qb6 7. Qxb6 axb6 8. Nf3 Nbd7 9. Be2 Be7 10. O-O O-O)
+(2... e6 3. Nf3 Nf6 4. e3 Bb4+ 5. c3
+{Use c3 to answer the check when the knight has not committed to c3.}
+5... Bd6 6. Bg3 O-O 7. Bd3)
+3. e3 e6
+(3... Bf5 4. c4
+{Early Bf5 is the clearest trigger for the active c4 structure.}
+4... e6 5. Nc3 c6
+(5... Nc6 6. Qa4
+{Qa4 uses the a4-e8 diagonal to pin the c6 knight while Black remains uncastled.}
+6... Qd7 7. Nf3 Be7 8. Be2 O-O 9. O-O)
+6. Qb3 Qb6 7. Qxb6 axb6 8. Nf3 Nbd7 9. Be2 Be7 10. O-O O-O)
+(3... Bg4 4. Nf3
+{Develop normally, then determine whether the pin requires a response.}
+4... e6 5. Be2 Bxf3 6. Bxf3 Be7 7. O-O O-O)
+4. Nbd2 Be7
+(4... Bd6 5. Bg3
+{Routine Bd6 pressure should normally be met by preserving the bishop on g3.}
+5... O-O
+(5... Bxg3 6. hxg3 O-O 7. Ngf3 c5 8. c3)
+6. Ngf3 c5 7. c3 Nc6 8. Bd3)
+5. Ngf3 O-O 6. Bd3 c5 7. c3
+   {Quiet d5-e6 positions use the traditional c3 and Nbd2 structure.}
+   7... Nc6 8. O-O b6 9. Ne5 Bb7 10. Qe2
+   {The benchmark ends after White reaches a coherent traditional London middlegame setup.}
+*
