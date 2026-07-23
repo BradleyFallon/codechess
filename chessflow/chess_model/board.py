@@ -80,19 +80,11 @@ class FlowBoard:
             for move in moves:
                 self.push(move)
         else:
-            self._create_snapshot_pieces(root)
+            raise ValueError(
+                "Persistent flow identities require a game beginning "
+                "from the standard initial position"
+            )
         self.rebuild_relationships()
-
-    @classmethod
-    def from_fen(cls, fen: str) -> FlowBoard:
-        """Build a snapshot board, inferring identities from piece type/proximity.
-
-        FEN contains no move history. Consequently, moved pieces receive a
-        conservative move_count of one, while pieces on their origins receive
-        zero. Use a python-chess Board with its move stack when exact historical
-        facts are required.
-        """
-        return cls(chess.Board(fen))
 
     @property
     def ply(self) -> int:
@@ -113,84 +105,6 @@ class FlowBoard:
                 flow_code=code if color is Color.WHITE else None,
             )
             self._register(piece, internal_code=code)
-
-    def _create_snapshot_pieces(self, board: chess.Board) -> None:
-        available = set(board.piece_map())
-        reserved_exact = {
-            origin
-            for piece_class, color, origin, _ in _STARTING_IDENTITIES
-            if board.color_at(origin) == color.chess_color
-            and board.piece_type_at(origin) == piece_class_kind(piece_class).value
-        }
-        next_extra_id = len(_STARTING_IDENTITIES) + 1
-        for piece_id, (piece_class, color, origin, code) in enumerate(
-            _STARTING_IDENTITIES, start=1
-        ):
-            occupant_type = board.piece_type_at(origin)
-            expected_type = (
-                PieceKind.from_chess(occupant_type)
-                if (
-                    occupant_type is not None
-                    and board.color_at(origin) == color.chess_color
-                )
-                else None
-            )
-            square: chess.Square | None = None
-            if (
-                expected_type is not None
-                and expected_type.value == piece_class_kind(piece_class).value
-            ):
-                square = origin
-            else:
-                candidates = [
-                    candidate
-                    for candidate in available - reserved_exact
-                    if board.color_at(candidate) == color.chess_color
-                    and board.piece_type_at(candidate)
-                    == piece_class_kind(piece_class).value
-                ]
-                if candidates:
-                    square = min(
-                        candidates,
-                        key=lambda candidate: chess.square_distance(origin, candidate),
-                    )
-            piece = cast(Any, piece_class)(
-                piece_id=piece_id,
-                color=color,
-                origin=origin,
-                flow_code=code if color is Color.WHITE else None,
-                square=origin,
-                move_count=0 if square == origin else int(square is not None),
-            )
-            piece.square = square
-            if square is not None:
-                available.discard(square)
-            self._register(piece, internal_code=code)
-
-        # Extra occupants generally indicate promotions. They still receive a
-        # stable internal identity even though a history-free FEN cannot tell us
-        # which pawn produced them.
-        class_by_type = {
-            chess.PAWN: Pawn,
-            chess.KNIGHT: Knight,
-            chess.BISHOP: Bishop,
-            chess.ROOK: Rook,
-            chess.QUEEN: Queen,
-            chess.KING: King,
-        }
-        for square in sorted(available):
-            chess_piece = board.piece_at(square)
-            assert chess_piece is not None
-            color = Color(chess_piece.color)
-            piece = class_by_type[chess_piece.piece_type](
-                piece_id=next_extra_id,
-                color=color,
-                origin=square,
-                square=square,
-                move_count=1,
-            )
-            self._register(piece, internal_code=f"promoted-{next_extra_id}")
-            next_extra_id += 1
 
     def _register(self, piece: Piece, *, internal_code: str) -> None:
         if piece.piece_id in self.pieces_by_id:
@@ -380,14 +294,3 @@ class FlowBoard:
             legal_piece.relations.legal_moves.add(move)
             if self.chess_board.is_capture(move):
                 legal_piece.relations.legal_captures.add(move)
-
-
-def piece_class_kind(piece_class: type[Piece]) -> PieceKind:
-    return {
-        Pawn: PieceKind.PAWN,
-        Knight: PieceKind.KNIGHT,
-        Bishop: PieceKind.BISHOP,
-        Rook: PieceKind.ROOK,
-        Queen: PieceKind.QUEEN,
-        King: PieceKind.KING,
-    }[piece_class]

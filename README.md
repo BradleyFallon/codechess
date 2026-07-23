@@ -66,7 +66,7 @@ python -m venv .venv
 .venv/bin/pytest
 ```
 
-When initialized from a raw FEN, `FlowBoard` infers the most likely standard
-piece identities. Since FEN has no history, exact `move_count` values require a
-`python-chess.Board` that retains its move stack.
-
+`FlowBoard` accepts a fresh board or a `chess.Board` whose retained move stack
+begins at the standard initial position. Raw non-starting FEN snapshots are
+rejected because FEN does not contain enough history to reconstruct persistent
+piece identities. The current snapshot remains available through `board.fen`.

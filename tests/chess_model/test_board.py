@@ -1,6 +1,7 @@
 import chess
+import pytest
 
-from chessflow.chess_model import Color, FlowBoard, Knight, Pawn, PieceKind
+from chessflow.chess_model import Color, FlowBoard, Knight, Pawn
 
 
 def test_starting_pieces_have_stable_public_and_internal_identities() -> None:
@@ -119,24 +120,35 @@ def test_sliding_visibility_stops_at_the_first_occupied_square() -> None:
     }
 
 
-def test_raw_fen_infers_standard_piece_identity() -> None:
+def test_board_with_retained_move_stack_reconstructs_exact_identities() -> None:
     source = chess.Board()
     source.push_san("d4")
     source.push_san("d5")
 
-    board = FlowBoard.from_fen(source.fen())
+    board = FlowBoard(source)
 
     assert board.flow_piece("d").square == chess.D4
     assert board.flow_piece("d").move_count == 1
     assert board.piece_ref("black.d").square == chess.D5
+    assert board.piece_ref("black.d").move_count == 1
 
 
-def test_promotion_kind_is_reversible_on_pop() -> None:
-    board = FlowBoard.from_fen("7k/P7/8/8/8/8/8/7K w - - 0 1")
-    pawn = board.flow_piece("a")
+def test_history_free_nonstarting_position_is_rejected() -> None:
+    snapshot = chess.Board()
+    snapshot.push_san("d4")
+    history_free = chess.Board(snapshot.fen())
 
-    board.push_uci("a7a8q")
-    assert pawn.kind is PieceKind.QUEEN
-    board.pop()
-    assert pawn.kind is PieceKind.PAWN
-    assert pawn.square == chess.A7
+    with pytest.raises(
+        ValueError,
+        match="Persistent flow identities require a game beginning",
+    ):
+        FlowBoard(history_free)
+
+
+def test_current_fen_can_be_exported_as_a_snapshot() -> None:
+    board = FlowBoard()
+    board.push_san("d4")
+    board.push_san("Nf6")
+
+    assert board.fen == board.chess_board.fen()
+    assert board.fen == "rnbqkb1r/pppppppp/5n2/8/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 1 2"
