@@ -1,0 +1,35 @@
+flow: london-vertical-slice
+version: 0.1
+side: white
+
+flags:
+    center-claimed
+
+conditions:
+    d-pawn-developed = played(d.develop.d4)
+    bishop-developed = played(bq.develop.f4)
+    e-pawn-developed = played(e.develop.e3)
+
+d:
+    develop.d4:
+        set: center-claimed
+        why: claim the center
+
+bq:
+    develop.f4:
+        when: d-pawn-developed
+        if: center-claimed
+        why: develop outside the pawn chain
+
+e:
+    develop.e3:
+        when: bishop-developed
+        if: at(e2)
+        why: support d4 and open the kingside bishop
+
+nk:
+    develop.f3:
+        when: e-pawn-developed
+        why: defend d4 and control e5
+        terminal: vertical-slice-complete
+

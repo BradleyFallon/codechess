@@ -1,0 +1,111 @@
+import chess
+
+from chessflow.chess_model import Color, FlowBoard, Knight, Pawn, PieceKind
+
+
+def test_starting_pieces_have_stable_public_and_internal_identities() -> None:
+    board = FlowBoard()
+
+    assert len(board.pieces_by_id) == 32
+    assert len(board.flow_pieces) == 16
+    assert isinstance(board.flow_piece("d"), Pawn)
+    assert isinstance(board.flow_piece("nk"), Knight)
+    assert board.piece_ref("black.d").color is Color.BLACK
+    assert board.piece_ref("black.d").flow_code is None
+
+
+def test_push_updates_the_same_piece_and_pop_restores_it() -> None:
+    board = FlowBoard()
+    pawn = board.flow_piece("d")
+    original_id = id(pawn)
+
+    delta = board.push_san("d4")
+
+    assert delta.moving_piece_id == pawn.piece_id
+    assert id(board.piece_at(chess.D4)) == original_id
+    assert pawn.square == chess.D4
+    assert pawn.move_count == 1
+    assert pawn.has_moved
+    assert not pawn.is_on_origin
+
+    board.pop()
+
+    assert board.piece_at(chess.D2) is pawn
+    assert pawn.move_count == 0
+    assert pawn.is_on_origin
+
+
+def test_has_moved_is_historical_even_after_return_to_origin() -> None:
+    board = FlowBoard()
+    knight = board.flow_piece("nk")
+
+    for san in ("Nf3", "a6", "Ng1", "a5"):
+        board.push_san(san)
+
+    assert knight.square == chess.G1
+    assert knight.is_on_origin
+    assert knight.has_moved
+    assert knight.move_count == 2
+
+
+def test_capture_and_castling_deltas_preserve_piece_objects() -> None:
+    capture_board = FlowBoard()
+    white_e = capture_board.flow_piece("e")
+    black_d = capture_board.piece_ref("black.d")
+    for san in ("e4", "d5", "exd5"):
+        capture_board.push_san(san)
+
+    assert capture_board.piece_at(chess.D5) is white_e
+    assert black_d.is_captured
+    capture_board.pop()
+    assert capture_board.piece_at(chess.E4) is white_e
+    assert capture_board.piece_at(chess.D5) is black_d
+
+    castle_board = FlowBoard()
+    king = castle_board.flow_piece("k")
+    rook = castle_board.flow_piece("rk")
+    for san in ("e4", "e5", "Nf3", "Nc6", "Bc4", "Nf6", "O-O"):
+        delta = castle_board.push_san(san)
+    assert delta.rook_piece_id == rook.piece_id
+    assert castle_board.piece_at(chess.G1) is king
+    assert castle_board.piece_at(chess.F1) is rook
+    castle_board.pop()
+    assert castle_board.piece_at(chess.E1) is king
+    assert castle_board.piece_at(chess.H1) is rook
+
+
+def test_relationships_come_from_python_chess() -> None:
+    board = FlowBoard()
+    knight = board.flow_piece("nk")
+    pawn = board.flow_piece("e")
+
+    assert knight.can_move_to(chess.F3)
+    assert chess.F3 in knight.relations.attacked_squares
+    assert pawn.piece_id in knight.relations.visible_allies
+
+    board.push_san("e4")
+    board.push_san("d5")
+    assert pawn.can_capture_on(chess.D5)
+
+
+def test_raw_fen_infers_standard_piece_identity() -> None:
+    source = chess.Board()
+    source.push_san("d4")
+    source.push_san("d5")
+
+    board = FlowBoard.from_fen(source.fen())
+
+    assert board.flow_piece("d").square == chess.D4
+    assert board.flow_piece("d").move_count == 1
+    assert board.piece_ref("black.d").square == chess.D5
+
+
+def test_promotion_kind_is_reversible_on_pop() -> None:
+    board = FlowBoard.from_fen("7k/P7/8/8/8/8/8/7K w - - 0 1")
+    pawn = board.flow_piece("a")
+
+    board.push_uci("a7a8q")
+    assert pawn.kind is PieceKind.QUEEN
+    board.pop()
+    assert pawn.kind is PieceKind.PAWN
+    assert pawn.square == chess.A7

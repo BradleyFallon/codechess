@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "chessflow"
+version = "0.1.0"
+description = "A flow-oriented chess opening model backed by python-chess"
+requires-python = ">=3.11"
+dependencies = ["python-chess>=1.999,<2"]
+
+[project.optional-dependencies]
+test = ["pytest>=8,<10"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.setuptools.packages.find]
+include = ["chessflow*"]
+
