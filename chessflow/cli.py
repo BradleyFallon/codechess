@@ -7,6 +7,7 @@ from typing import Sequence
 
 from chessflow.conformance import run_conformance
 from chessflow.flow_language import parse_flow
+from chessflow.learn import LearnError, run_learn
 from chessflow.quiz import QuizError, run_quiz
 from chessflow.reporting import render_text_report
 from chessflow.repertoire import load_pgn
@@ -27,6 +28,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     quiz.add_argument("flow", type=Path)
     quiz.add_argument("pgn", type=Path)
+    learn = commands.add_parser(
+        "learn",
+        help="walk through every PGN line with guided coaching",
+    )
+    learn.add_argument("flow", type=Path)
+    learn.add_argument("pgn", type=Path)
     args = parser.parse_args(argv)
 
     try:
@@ -36,10 +43,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         repertoire = load_pgn(pgn_path.read_text())
         if args.command == "quiz":
             run_quiz(definition, repertoire)
+        elif args.command == "learn":
+            run_learn(definition, repertoire)
         else:
             result = run_conformance(definition, repertoire)
             print(render_text_report(result), end="")
-    except (OSError, QuizError, ValueError) as exc:
+    except (LearnError, OSError, QuizError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 

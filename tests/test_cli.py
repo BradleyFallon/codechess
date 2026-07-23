@@ -119,3 +119,37 @@ def test_quiz_command_runs_one_interactive_line(
     assert "Correct." in captured.out
     assert "Line complete." in captured.out
     assert captured.err == ""
+
+
+def test_learn_command_runs_one_guided_line(
+    tmp_path: Path,
+    monkeypatch,
+    capsys,
+) -> None:
+    flow_path = tmp_path / "learn.flow"
+    flow_path.write_text(
+        """
+        flow cli-learn
+        version 0.1
+        side white
+        d:
+            develop.d4:
+                why: Claim the center.
+        """
+    )
+    pgn_path = tmp_path / "learn.pgn"
+    pgn_path.write_text(
+        "{Begin with the center.} 1. d4 {Keep options open.} *"
+    )
+    answers = iter(("d4", ""))
+    monkeypatch.setattr("builtins.input", lambda: next(answers))
+
+    exit_code = main(["learn", str(flow_path), str(pgn_path)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Learn · L1/1 · Q1/1 · Rules 0" in captured.out
+    assert "Coach:\nBegin with the center." in captured.out
+    assert "NEW RULE\nd.develop.d4" in captured.out
+    assert "Opening walkthrough complete." in captured.out
+    assert captured.err == ""

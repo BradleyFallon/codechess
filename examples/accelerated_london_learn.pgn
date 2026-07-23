@@ -1,0 +1,351 @@
+[Event "Accelerated London Guided Course"]
+[Site "CodeChess"]
+[Date "2026.07.23"]
+[Round "-"]
+[White "Student"]
+[Black "Coach Tree"]
+[Result "*"]
+[Annotator "CodeChess Learn Mode"]
+[Opening "Accelerated London System"]
+
+{Begin with 1.d4. The goal is not to memorize one fixed sequence, but to recognize which London structure fits Black's setup.}
+1. d4
+{White claims central space and keeps the c-pawn flexible. The next priority is usually to develop the c1 bishop before playing e3.}
+1... d5
+{Black has established a pawn on d5. Watch the c8 bishop and the rest of Black's center before choosing c3 or c4.}
+(1... c5
+{Black has challenged the center before playing d5. Do not force a normal London triangle; take space immediately.}
+2. d5
+{This creates a Benoni-style space advantage. White will follow with Nc3 and e4 instead of c3.}
+2... Nf6
+{Black attacks the center and prepares normal development. Build support behind the advanced d5 pawn.}
+3. Nc3
+{The b1 knight belongs on c3 because White intends a broad center with e4.}
+3... d6
+{Black prepares to challenge the advanced center. Reinforce it with another pawn.}
+4. e4
+{White now has the broad d5-e4 center.}
+4... g6
+{Black is preparing a kingside fianchetto. Continue development without abandoning the center.}
+5. Nf3
+{The kingside knight supports e5 and helps White castle.}
+5... Bg7
+{Black completes the fianchetto. The light-squared bishop is usually more useful on e2 than d3 here.}
+6. Be2
+{Be2 develops safely without aiming at an h7 target that the fianchetto has changed.}
+6... O-O
+{Black has secured the king. White should do the same.}
+7. O-O
+{White reaches a sound Benoni-style development with extra central space.})
+(1... Nf6
+{Black develops without committing the center. White can still begin with the London bishop.}
+2. Bf4
+{The bishop develops outside the pawn chain before e3 closes it in.}
+2... d5
+{Black has now established d5. Look for whether Black chooses a quiet setup, a fianchetto, or a slow move that permits fork preparation.}
+    (2... g6
+    {Black is committing to a kingside fianchetto. This is a signal to use Nc3 and build e4 rather than play the quiet c3 London.}
+    3. Nc3
+    {Nc3 supports the broad center and keeps the option of e4 immediate.}
+    3... Bg7
+    {The fianchetto is complete. Claim more central space before Black strikes back.}
+    4. e4
+    {White builds the active Nc3-e4 structure.}
+    4... d6
+    {Black supports e5 and prepares development. White should coordinate the queen and king for the attacking setup.}
+    5. Qd2
+    {Qd2 connects the pieces, supports Bh6 ideas, and prepares queenside castling.}
+    5... O-O
+    {Black castles kingside. White may now castle the opposite way because the structure is committed.}
+    6. O-O-O
+    {Opposite-side castling supports a direct kingside attack, provided the queenside remains stable.}
+    6... c5
+    {Black challenges the center. Preserve space and close the center when appropriate.}
+    7. d5
+    {The center closes, giving White room to build a kingside attack.})
+    (2... b6
+    {Black is preparing to fianchetto the c8 bishop. Use active central development rather than automatically choosing c3.}
+    3. Nc3
+    {Nc3 supports central expansion and keeps e4 available.}
+    3... d5
+    {Black establishes a central pawn. White can now support d4 without giving up the active knight placement.}
+    4. e3
+    {e3 supports d4 and opens the f1 bishop.}
+    4... Bb7
+    {Black's bishop now controls the long diagonal. Continue normal development and prepare to meet a bishop challenge.}
+    5. Nf3
+    {Nf3 supports the center and prepares castling.}
+    5... e6
+    {Black completes a solid center. Develop the remaining bishop toward the kingside.}
+    6. Bd3
+    {Bd3 points toward h7 and supports normal London attacking ideas.}
+    6... Bd6
+    {Black is trying to exchange the London bishop. Preserve it because it controls important attacking squares.}
+    7. Bg3
+    {Bg3 keeps the bishop and maintains control of e5 and the diagonal toward c7.}
+    7... O-O
+    {Black castles. White should finish king safety.}
+    8. O-O
+    {White completes development with the London bishop preserved.})
+    3. e3
+    {With no immediate structural trigger, support d4 and open the kingside bishop.}
+    3... h6
+    {Black has spent a slow tempo. Check whether the c7 fork geometry can be prepared before Black castles.}
+    4. Nc3
+    {Nc3 places the knight on the route to b5 while Bf4 protects c7.}
+    4... e6
+    {Black still has the king on e8, the rook on a8, and the pawn on c7. The fork setup is alive.}
+    5. Nb5
+    {Nb5 threatens Nxc7+, a checking fork of the king and a8 rook.}
+    5... Na6
+    {Black has defended c7 with the knight. Do not force the fork now; resume development.}
+        (5... Be7
+        {Black develops but does not defend c7 or remove the bishop on f4. The fork is ready.}
+        6. Nxc7+
+        {Nxc7+ forks the king and rook while the bishop on f4 supports the knight.}
+        6... Kf8
+        {The king moves, leaving the rook on a8 available. Complete the tactic.}
+        7. Nxa8
+        {White wins the rook and finishes the fork sequence.})
+        (5... c6
+        {The c-pawn attacks the knight and removes the c7 target. The fork has disappeared, so retreat.}
+        6. Nc3
+        {Return the knight to c3 and continue with a normal position.})
+        (5... Bb4+
+        {Black gives a forcing check and interrupts the fork. Answer the check before continuing development.}
+        6. c3
+        {c3 blocks the check and attacks the bishop while building a stable center.}
+        6... Be7
+        {The check is resolved and the fork is no longer urgent. Continue development.}
+        7. Nf3
+        {Nf3 supports the center and prepares castling.}
+        7... O-O
+        {Black reaches safety.})
+        (5... Bd6
+        {Black attacks the bishop that supports c7. Preserve the bishop before reconsidering the fork.}
+        6. Bg3
+        {The bishop retreats while maintaining useful control.}
+        6... Bxg3
+        {Black chooses to exchange the bishop. Recapture with the h-pawn.}
+        7. hxg3
+        {The h-pawn recaptures and opens the h-file, but the original fork support is gone.})
+    6. Nf3
+    {Since c7 is defended, return to normal development.}
+    6... c6
+    {Black attacks the knight on b5 and removes the c7 target. Retreat the knight.}
+    7. Nc3
+    {The knight returns to its useful central square.}
+    7... Bd6
+    {Black challenges the London bishop. Preserve it.}
+    8. Bg3
+    {Bg3 keeps the bishop and completes the tactical lesson: prepare the fork only while the geometry remains favorable.}
+    8... O-O)
+2. Bf4
+{Develop the London bishop before e3.}
+2... Nf6
+{Black develops normally. White can support d4 unless a more urgent structural signal appears.}
+(2... c5
+{Black challenges d4 after already playing d5. Support the center first, then choose a stable response to later pressure.}
+3. e3
+{e3 reinforces d4 and keeps both c3 and c4 available for the moment.}
+3... Nc6
+{Black adds pressure to d4. Develop the kingside knight.}
+4. Nf3
+{Nf3 supports d4 and prepares castling.}
+4... Nf6
+{Black completes normal development. The b1 knight can now support the quiet structure from d2.}
+5. Nbd2
+{Nbd2 pairs naturally with a future c3 London triangle.}
+5... Qb6
+{Black attacks b2 and increases pressure on d4. This concrete threat overrides automatic development.}
+6. Qc1
+{Qc1 defends b2 without abandoning the London structure.}
+6... e6
+{Black stabilizes the center. White can now complete the pawn triangle.}
+7. c3
+{c3 reinforces d4 and creates the traditional London structure.}
+7... Be7
+{Black continues development. Place the remaining bishop actively.}
+8. Bd3
+{Bd3 points toward h7 and supports kingside play.}
+8... O-O
+{Black castles. White should secure the king.}
+9. O-O
+{White completes a solid setup after meeting the early queen pressure.})
+(2... Bf5
+{Black develops the c8 bishop before securing it with e6. The bishop has left b7 undefended, so prepare an active c4 setup.}
+3. e3
+{Support d4 and open the f1 bishop before committing the c-pawn.}
+3... Nf6
+{Black develops normally, but the early bishop placement still favors c4.}
+4. c4
+{c4 attacks d5 and chooses the active London structure instead of c3.}
+4... e6
+{Black supports d5. The b1 knight now belongs on c3.}
+5. Nc3
+{Nc3 supports the c4 pressure and develops toward active play.}
+5... c6
+{Black builds a Slav-style center. The c8 bishop is gone, so b7 is a real target.}
+6. Qb3
+{Qb3 pressures b7 while the c4 pawn attacks d5.}
+6... Qb6
+{Black offers a queen exchange while defending b7. Accepting it is comfortable.}
+7. Qxb6
+{The queen exchange removes Black's active queen and preserves White's structural pressure.}
+7... axb6
+{Black recaptures with the a-pawn, creating doubled queenside pawns. Continue development.}
+8. Nf3
+{Nf3 develops and prepares castling.}
+8... Nbd7
+{Black completes development. The light-squared bishop belongs safely on e2 in this active structure.}
+9. Be2
+{Be2 develops without blocking the queen's former pressure line or inviting unnecessary exchanges.}
+9... Be7
+{Black prepares to castle. White should do the same.}
+10. O-O
+{White reaches a sound active London middlegame with pressure and easy development.}
+10... O-O)
+(2... e6
+{Black has played e6 before Nf6. Keep flexibility by developing the kingside knight first.}
+3. Nf3
+{Nf3 develops while leaving the b1 knight and c-pawn uncommitted.}
+3... Nf6
+{Black completes a quiet setup. Support the center.}
+4. e3
+{e3 builds the normal London foundation.}
+4... Bb4+
+{Black gives a forcing check before White has moved the b1 knight. Use the c-pawn to block and gain tempo.}
+5. c3
+{c3 answers the check and attacks the bishop while creating the traditional pawn triangle.}
+5... Bd6
+{Black now challenges the London bishop. Preserve it before continuing development.}
+6. Bg3
+{Bg3 keeps the bishop and maintains its useful diagonal.}
+6... O-O
+{Black castles. Develop the remaining bishop before deciding on the b1 knight.}
+7. Bd3
+{Bd3 completes active development and supports kingside play.})
+3. e3
+{With no special trigger yet, support d4 and open the f1 bishop.}
+3... e6
+{Black has chosen the quiet classical setup. This normally leads to Nbd2 and c3 rather than the active c4 structure.}
+(3... Bf5
+{Black's c8 bishop has left the queenside. Switch from the quiet London plan to active pressure.}
+4. c4
+{c4 challenges d5 immediately and commits White to the active structure.}
+4... e6
+{Black supports d5. Develop the b1 knight to c3.}
+5. Nc3
+{Nc3 supports the center and prepares queen activity.}
+5... c6
+{Black builds a Slav structure. With the c8 bishop gone, Qb3 is the natural pressure move.}
+    (5... Nc6
+    {Black develops the knight to c6 while the king remains on e8. Look for the Qa4 pin.}
+    6. Qa4
+    {Qa4 uses the open a4-e8 diagonal to pin the c6 knight to the king.}
+    6... Qd7
+    {Black breaks the pin and develops the queen. Resume normal development.}
+    7. Nf3
+    {Nf3 supports the center and prepares castling.}
+    7... Be7
+    {Black prepares to castle. Develop the remaining bishop.}
+    8. Be2
+    {Be2 is a safe square in the active c4 structure.}
+    8... O-O
+    {Black castles. White should secure the king.}
+    9. O-O
+    {White completes development after using Qa4 for a concrete tactical purpose.})
+6. Qb3
+{Qb3 attacks b7, while the c4 pawn supplies the pressure against d5.}
+6... Qb6
+{Black offers a queen exchange to solve the pressure. Accept it.}
+7. Qxb6
+{The queen exchange leaves Black with a less flexible queenside structure.}
+7... axb6
+{Black recaptures with the a-pawn. Finish development.}
+8. Nf3
+{Nf3 prepares castling.}
+8... Nbd7
+{Black develops. Place the f1 bishop on e2.}
+9. Be2
+{Be2 supports easy castling in the active structure.}
+9... Be7
+{Black prepares to castle.}
+10. O-O
+{White completes a healthy active London setup.}
+10... O-O)
+(3... Bg4
+{Black pins the f3 knight before it has moved. Develop the knight, then ask whether the pin has a real purpose.}
+4. Nf3
+{Nf3 is still the natural developing move.}
+4... e6
+{Black reinforces the center while maintaining the pin. Ask the bishop to decide.}
+5. h3
+{h3 challenges the pinning bishop and creates luft for the London bishop if needed.}
+5... Bxf3
+{Black gives up the bishop pair to damage coordination. Recapture with the queen.}
+6. Qxf3
+{Qxf3 preserves the pawn structure and centralizes the queen.}
+6... Be7
+{Black develops normally. White can now develop the remaining bishop.}
+7. Be2
+{Be2 prepares castling without exposing the bishop.}
+7... O-O
+{Black castles. White should follow.}
+8. O-O
+{White resolves the pin and completes development with a healthy structure.})
+4. Nbd2
+{In the quiet classical structure, Nbd2 supports e4 and pairs with c3.}
+4... Be7
+{Black develops without challenging the London bishop. Continue with the kingside knight.}
+(4... Bd6
+{Black is trying to exchange the London bishop. Preserve it rather than trade automatically.}
+5. Bg3
+{Bg3 keeps the bishop and its control of e5 and c7.}
+5... O-O
+{Black castles. Continue development before choosing the final pawn structure.}
+    (5... Bxg3
+    {Black exchanges the bishop. Recapture with the h-pawn to open the h-file.}
+    6. hxg3
+    {The h-file opens, providing a possible attacking resource.}
+    6... O-O
+    {Black castles. Develop the kingside knight.}
+    7. Ngf3
+    {Nf3 supports the center and prepares castling.}
+    7... c5
+    {Black challenges d4. Complete the stable pawn triangle.}
+    8. c3
+    {c3 reinforces d4 and reaches the traditional London structure.})
+6. Ngf3
+{Nf3 completes knight development.}
+6... c5
+{Black challenges the center. Build the c3-d4-e3 triangle.}
+7. c3
+{c3 gives White a stable center and prepares Ne5.}
+7... Nc6
+{Black develops. Complete the light-squared bishop development.}
+8. Bd3
+{Bd3 supports kingside play and prepares castling.})
+5. Ngf3
+{Nf3 completes the normal knight setup.}
+5... O-O
+{Black castles. Develop the remaining bishop before choosing the final central plan.}
+6. Bd3
+{Bd3 targets h7 and supports the standard London attack.}
+6... c5
+{Black challenges d4. This is the moment to complete the traditional c3 structure.}
+7. c3
+{c3 reinforces d4 and prepares Ne5 followed by a possible e4 break.}
+7... Nc6
+{Black develops. White can now secure the king.}
+8. O-O
+{White castles after completing the basic structure.}
+8... b6
+{Black prepares Bb7. White should occupy the central outpost on e5.}
+9. Ne5
+{Ne5 centralizes the knight and supports kingside play.}
+9... Bb7
+{Black develops the bishop. Coordinate the queen with the center and kingside.}
+10. Qe2
+{Qe2 supports e4 and completes a coherent traditional London setup.}
+*
