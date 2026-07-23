@@ -89,3 +89,33 @@ def test_second_pass_ruleset_cleanly_matches_the_full_benchmark(
     assert "Disagreements: 0" in captured.out
     assert "Dead ends: 0" in captured.out
     assert captured.err == ""
+
+
+def test_quiz_command_runs_one_interactive_line(
+    tmp_path: Path,
+    monkeypatch,
+    capsys,
+) -> None:
+    flow_path = tmp_path / "quiz.flow"
+    flow_path.write_text(
+        """
+        flow cli-quiz
+        version 0.1
+        side white
+        d:
+            develop.d4:
+        """
+    )
+    pgn_path = tmp_path / "quiz.pgn"
+    pgn_path.write_text("1. d4 *")
+    answers = iter(("d4",))
+    monkeypatch.setattr("builtins.input", lambda: next(answers))
+
+    exit_code = main(["quiz", str(flow_path), str(pgn_path)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "CodeChess · L1/1 · Q1/1" in captured.out
+    assert "Correct." in captured.out
+    assert "Line complete." in captured.out
+    assert captured.err == ""
