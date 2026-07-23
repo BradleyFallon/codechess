@@ -80,12 +80,43 @@ def test_relationships_come_from_python_chess() -> None:
     pawn = board.flow_piece("e")
 
     assert knight.can_move_to(chess.F3)
-    assert chess.F3 in knight.relations.attacked_squares
+    assert knight.controls(chess.F3)
+    assert chess.F3 in knight.relations.controlled_squares
     assert pawn.piece_id in knight.relations.visible_allies
 
     board.push_san("e4")
     board.push_san("d5")
     assert pawn.can_capture_on(chess.D5)
+
+
+def test_geometric_control_is_distinct_from_legal_movement() -> None:
+    board = FlowBoard()
+    for san in ("b3", "e5", "d3", "Bb4+", "Nd2", "a6"):
+        board.push_san(san)
+
+    knight = board.flow_piece("nq")
+    friendly_pawn = board.flow_piece("b")
+
+    assert knight.is_pinned
+    assert knight.controls(chess.F3)
+    assert not knight.can_move_to(chess.F3)
+    assert knight.controls(chess.B3)
+    assert friendly_pawn.is_defended
+    assert knight.piece_id in friendly_pawn.relations.geometric_defenders
+
+
+def test_sliding_visibility_stops_at_the_first_occupied_square() -> None:
+    board = FlowBoard()
+    bishop = board.flow_piece("bq")
+
+    assert bishop.controls(chess.B2)
+    assert bishop.controls(chess.D2)
+    assert not bishop.controls(chess.A3)
+    assert not bishop.controls(chess.E3)
+    assert bishop.relations.visible_allies == {
+        board.flow_piece("b").piece_id,
+        board.flow_piece("d").piece_id,
+    }
 
 
 def test_raw_fen_infers_standard_piece_identity() -> None:

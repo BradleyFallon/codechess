@@ -337,11 +337,11 @@ class FlowBoard:
             piece.relations.clear()
         for piece in self.alive_pieces():
             assert piece.square is not None
-            piece.relations.attacked_squares.update(
+            piece.relations.controlled_squares.update(
                 self.chess_board.attacks(piece.square)
             )
         for piece in self.alive_pieces():
-            for square in piece.relations.attacked_squares:
+            for square in piece.relations.controlled_squares:
                 visible = self.piece_at(square)
                 if visible is None:
                     continue
@@ -358,13 +358,13 @@ class FlowBoard:
             ):
                 defender = self.piece_at(square)
                 if defender is not None and defender is not target:
-                    target.relations.defenders.add(defender.piece_id)
+                    target.relations.geometric_defenders.add(defender.piece_id)
             for square in self.chess_board.attackers(
                 target.color.opposite.chess_color, target.square
             ):
                 attacker = self.piece_at(square)
                 if attacker is not None:
-                    target.relations.attackers.add(attacker.piece_id)
+                    target.relations.geometric_attackers.add(attacker.piece_id)
         for piece in self.alive_pieces():
             if piece.kind is not PieceKind.KING:
                 assert piece.square is not None

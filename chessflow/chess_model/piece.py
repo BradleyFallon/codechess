@@ -80,11 +80,11 @@ class Piece:
 
     @property
     def is_attacked(self) -> bool:
-        return bool(self.relations.attackers)
+        return bool(self.relations.geometric_attackers)
 
     @property
     def is_defended(self) -> bool:
-        return bool(self.relations.defenders)
+        return bool(self.relations.geometric_defenders)
 
     @property
     def is_pinned(self) -> bool:
@@ -92,11 +92,11 @@ class Piece:
 
     @property
     def attacker_count(self) -> int:
-        return len(self.relations.attackers)
+        return len(self.relations.geometric_attackers)
 
     @property
     def defender_count(self) -> int:
-        return len(self.relations.defenders)
+        return len(self.relations.geometric_defenders)
 
     @property
     def has_developed(self) -> bool:
@@ -116,8 +116,8 @@ class Piece:
     def at(self, square: chess.Square) -> bool:
         return self.square == square
 
-    def attacks(self, square: chess.Square) -> bool:
-        return square in self.relations.attacked_squares
+    def controls(self, square: chess.Square) -> bool:
+        return square in self.relations.controlled_squares
 
     def can_move_to(self, square: chess.Square) -> bool:
         return any(move.to_square == square for move in self.relations.legal_moves)
