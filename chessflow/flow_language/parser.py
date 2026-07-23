@@ -300,12 +300,13 @@ class FlowParser:
             return
         if not isinstance(expression, Call):
             raise FlowSyntaxError(f"Unsupported expression in {location}")
-        arities: dict[str, set[int]] = {
+        contextual_arities: dict[str, set[int]] = {
             "at": {1, 2},
             "moved": {0},
             "developed": {0},
             "unmoved": {1},
             "captured": {1},
+            "controls": {1},
             "attacked": {0, 1, 2},
             "defended": {0, 1, 2},
             "played": {1},
@@ -316,10 +317,26 @@ class FlowParser:
         call_parts = expression.name.lower().rsplit(".", maxsplit=1)
         receiver = call_parts[0] if len(call_parts) == 2 else None
         predicate = call_parts[-1]
-        if receiver is not None and predicate not in {"moved", "developed"}:
-            raise FlowSyntaxError(
-                f"Unknown predicate {expression.name}() in {location}"
-            )
+        if receiver is None:
+            arities = contextual_arities
+        elif receiver.startswith("square."):
+            arities = {"has": {1}, "empty": {0}}
+            try:
+                chess.parse_square(receiver.removeprefix("square."))
+            except ValueError as exc:
+                raise FlowSyntaxError(
+                    f"Invalid square receiver {receiver!r} in {location}"
+                ) from exc
+        else:
+            arities = {
+                "moved": {0},
+                "developed": {0},
+                "controls": {1},
+                "attacked": {0},
+                "defended": {0},
+                "canmoveto": {1},
+                "cancaptureon": {1},
+            }
         if predicate not in arities:
             raise FlowSyntaxError(
                 f"Unknown predicate {expression.name}() in {location}"

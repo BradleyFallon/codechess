@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 import chess
 
-from chessflow.chess_model import Color, FlowBoard, Piece
+from chessflow.chess_model import Color, FlowBoard, Piece, PieceKind
 from chessflow.flow_language.expressions import (
     BooleanOperation,
     Call,
@@ -86,16 +86,32 @@ def _evaluate_call(call: Call, context: EvaluationContext) -> bool:
     receiver, name = _call_receiver_and_name(call)
     args = tuple(_argument_name(argument) for argument in call.arguments)
     if receiver is not None:
-        if args:
-            raise EvaluationError(
-                f"{call.name}() expects 0 argument(s), received {len(args)}"
-            )
+        if receiver.startswith("square."):
+            return _evaluate_square_call(call, receiver, name, args, context)
         if name == "moved":
+            _arity(call, args, 0)
             if context.rule is None:
                 raise EvaluationError(f"{call.name}() needs a contextual rule")
             return moved_since_activation(context.rule, context.board, receiver)
         if name == "developed":
-            return context.board.piece_ref(receiver).has_developed
+            _arity(call, args, 0)
+            return _piece_ref(receiver, context).has_developed
+        piece = _piece_ref(receiver, context)
+        if name == "controls":
+            _arity(call, args, 1)
+            return piece.controls(_square(args[0]))
+        if name == "attacked":
+            _arity(call, args, 0)
+            return piece.is_attacked
+        if name == "defended":
+            _arity(call, args, 0)
+            return piece.is_defended
+        if name == "canmoveto":
+            _arity(call, args, 1)
+            return piece.can_move_to(_square(args[0]))
+        if name == "cancaptureon":
+            _arity(call, args, 1)
+            return piece.can_capture_on(_square(args[0]))
         raise EvaluationError(f"Unknown predicate: {call.name}()")
     if name == "at":
         if len(args) == 1:
@@ -118,6 +134,9 @@ def _evaluate_call(call: Call, context: EvaluationContext) -> bool:
     if name == "captured":
         _arity(call, args, 1)
         return context.board.piece_ref(args[0]).is_captured
+    if name == "controls":
+        _arity(call, args, 1)
+        return context.owner.controls(_square(args[0]))
     if name == "attacked":
         if not args:
             return context.owner.is_attacked
@@ -168,6 +187,55 @@ def _call_receiver_and_name(call: Call) -> tuple[str | None, str]:
     if len(parts) == 1:
         return None, parts[0]
     return parts[0], parts[1]
+
+
+def _evaluate_square_call(
+    call: Call,
+    receiver: str,
+    name: str,
+    args: tuple[str, ...],
+    context: EvaluationContext,
+) -> bool:
+    square = _square(receiver.removeprefix("square."))
+    if name == "empty":
+        _arity(call, args, 0)
+        return context.board.piece_at(square) is None
+    if name == "has":
+        _arity(call, args, 1)
+        occupant = context.board.piece_at(square)
+        return occupant is not None and _matches_selector(occupant, args[0], context)
+    raise EvaluationError(f"Unknown predicate: {call.name}()")
+
+
+def _matches_selector(
+    piece: Piece, selector: str, context: EvaluationContext
+) -> bool:
+    parts = selector.lower().split(".")
+    relative_colors = {
+        "ours": context.flow.definition.side,
+        "enemy": context.flow.definition.side.opposite,
+    }
+    if parts[0] in relative_colors:
+        if piece.color is not relative_colors[parts[0]]:
+            return False
+        if len(parts) == 1:
+            return True
+        if len(parts) == 2:
+            try:
+                return piece.kind is PieceKind[parts[1].upper()]
+            except KeyError as exc:
+                raise EvaluationError(f"Unknown piece selector: {selector!r}") from exc
+        raise EvaluationError(f"Unknown piece selector: {selector!r}")
+    return piece is _piece_ref(selector, context)
+
+
+def _piece_ref(reference: str, context: EvaluationContext) -> Piece:
+    try:
+        return context.board.piece_ref(
+            reference, default_color=context.flow.definition.side
+        )
+    except KeyError as exc:
+        raise EvaluationError(str(exc)) from exc
 
 
 def _argument_name(expression: Expression) -> str:

@@ -124,3 +124,48 @@ def test_parser_accepts_contextual_and_explicit_flow_history_predicates() -> Non
     )
 
     assert len(definition.rules) == 2
+
+
+def test_parser_accepts_square_selectors_and_piece_geometry() -> None:
+    definition = parse_flow(
+        """
+        flow position-queries
+        version 0.1
+        side white
+        conditions:
+            position =
+                square.f5.has(enemy.bishop) &&
+                square.d4.has(ours.pawn) &&
+                !square.f5.empty() &&
+                nq.controls(f3) &&
+                !nq.canMoveTo(f3)
+        c:
+            develop.c3:
+                if: position && controls(b3) && b.defended()
+        """
+    )
+
+    assert "position" in definition.conditions
+
+
+@pytest.mark.parametrize(
+    "predicate",
+    (
+        "square.z9.empty()",
+        "square.f5.has()",
+        "square.f5.controls(e4)",
+        "nq.attacked(f3)",
+    ),
+)
+def test_parser_rejects_invalid_square_and_piece_calls(predicate: str) -> None:
+    with pytest.raises(FlowSyntaxError):
+        parse_flow(
+            f"""
+            flow invalid-query
+            version 0.1
+            side white
+            c:
+                develop.c3:
+                    if: {predicate}
+            """
+        )

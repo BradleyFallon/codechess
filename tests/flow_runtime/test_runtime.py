@@ -3,7 +3,7 @@ from pathlib import Path
 import chess
 
 from chessflow import FlowBoard, FlowRuntime, parse_flow
-from chessflow.flow_language.expressions import parse_expression
+from chessflow.flow_language.expressions import Name, parse_expression
 from chessflow.flow_runtime import RuleStatus
 from chessflow.flow_runtime.evaluator import EvaluationContext, evaluate
 from chessflow.simulation import FlowRunner, TurnOutcome
@@ -248,3 +248,118 @@ def test_explicit_and_implicit_until_moved_expire_together() -> None:
 
     assert implicit_rule.status is RuleStatus.EXPIRED
     assert explicit_rule.status is RuleStatus.EXPIRED
+
+
+def test_square_queries_support_relative_type_and_identity_selectors() -> None:
+    definition = parse_flow(
+        """
+        flow square-queries
+        version 0.1
+        side white
+        conditions:
+            enemy-bishop = square.f5.has(enemy.bishop)
+            wrong-type = square.f5.has(enemy.knight)
+            empty-square = square.h4.empty()
+            ours = square.d4.has(ours)
+            ours-pawn = square.d4.has(ours.pawn)
+            enemy = square.f5.has(enemy)
+            black-identity = square.f5.has(black.bq)
+        c:
+            develop.c3:
+                if: enemy-bishop
+        """
+    )
+    board = FlowBoard()
+    for san in ("d4", "d5", "Nf3", "Bf5"):
+        board.push_san(san)
+    flow = FlowRuntime(definition, board)
+    rule = board.flow_piece("c").rules.active[0]  # type: ignore[union-attr]
+    context = EvaluationContext(board, flow, rule)
+
+    assert evaluate(Name("enemy-bishop"), context)
+    assert not evaluate(Name("wrong-type"), context)
+    assert evaluate(Name("empty-square"), context)
+    assert evaluate(Name("ours"), context)
+    assert evaluate(Name("ours-pawn"), context)
+    assert evaluate(Name("enemy"), context)
+    assert evaluate(Name("black-identity"), context)
+    assert board.piece_at(chess.F5) is board.piece_ref("black.bq")
+
+
+def test_square_query_accepts_flow_piece_identity() -> None:
+    definition = parse_flow(
+        """
+        flow identity-query
+        version 0.1
+        side white
+        c:
+            develop.c3:
+                if: square.f4.has(bq)
+        """
+    )
+    board = FlowBoard()
+    for san in ("d4", "d5", "Bf4", "Nf6"):
+        board.push_san(san)
+    flow = FlowRuntime(definition, board)
+    rule = board.flow_piece("c").rules.active[0]  # type: ignore[union-attr]
+
+    assert evaluate(
+        parse_expression("square.f4.has(bq)"),
+        EvaluationContext(board, flow, rule),
+    )
+
+
+def test_piece_geometry_queries_distinguish_control_from_legal_moves() -> None:
+    definition = parse_flow(
+        """
+        flow geometry-queries
+        version 0.1
+        side white
+        nq:
+            develop.c4:
+                if:
+                    controls(f3) &&
+                    nq.controls(f3) &&
+                    attacked() &&
+                    nq.attacked() &&
+                    b.defended() &&
+                    !canMoveTo(f3) &&
+                    !nq.canMoveTo(f3)
+        """
+    )
+    board = FlowBoard()
+    for san in ("b3", "e5", "d3", "Bb4+", "Nd2", "a6"):
+        board.push_san(san)
+    flow = FlowRuntime(definition, board)
+    rule = board.flow_piece("nq").rules.active[0]  # type: ignore[union-attr]
+    context = EvaluationContext(board, flow, rule)
+
+    assert evaluate(parse_expression("controls(f3)"), context)
+    assert evaluate(parse_expression("nq.controls(f3)"), context)
+    assert evaluate(parse_expression("attacked()"), context)
+    assert evaluate(parse_expression("nq.attacked()"), context)
+    assert evaluate(parse_expression("b.defended()"), context)
+    assert not evaluate(parse_expression("canMoveTo(f3)"), context)
+    assert not evaluate(parse_expression("nq.canMoveTo(f3)"), context)
+
+
+def test_piece_qualified_legal_capture_query() -> None:
+    definition = parse_flow(
+        """
+        flow legal-capture-query
+        version 0.1
+        side white
+        e:
+            capture.d5:
+                if: canCaptureOn(d5) && e.canCaptureOn(d5)
+        """
+    )
+    board = FlowBoard()
+    board.push_san("e4")
+    board.push_san("d5")
+    flow = FlowRuntime(definition, board)
+    rule = board.flow_piece("e").rules.active[0]  # type: ignore[union-attr]
+    context = EvaluationContext(board, flow, rule)
+
+    assert evaluate(parse_expression("canCaptureOn(d5)"), context)
+    assert evaluate(parse_expression("e.canCaptureOn(d5)"), context)
