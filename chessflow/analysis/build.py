@@ -83,15 +83,12 @@ def _benchmark_positions(
 
 def _finding(node: ConformanceNode) -> AnalysisFinding:
     assert node.status is not None
-    if node.terminal is not None:
-        status = AnalysisStatus.TERMINAL
-    else:
-        status = {
-            ConformanceStatus.MATCH: AnalysisStatus.MATCH,
-            ConformanceStatus.AMBIGUOUS: AnalysisStatus.AMBIGUITY,
-            ConformanceStatus.DISAGREEMENT: AnalysisStatus.DISAGREEMENT,
-            ConformanceStatus.DEAD_END: AnalysisStatus.DEAD_END,
-        }[node.status]
+    status = {
+        ConformanceStatus.MATCH: AnalysisStatus.MATCH,
+        ConformanceStatus.AMBIGUOUS: AnalysisStatus.AMBIGUITY,
+        ConformanceStatus.DISAGREEMENT: AnalysisStatus.DISAGREEMENT,
+        ConformanceStatus.DEAD_END: AnalysisStatus.DEAD_END,
+    }[node.status]
     return AnalysisFinding(
         path_san=node.position_path_san,
         fen=node.fen,

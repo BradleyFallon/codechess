@@ -9,7 +9,6 @@ class AnalysisStatus(Enum):
     AMBIGUITY = "ambiguity"
     DISAGREEMENT = "disagreement"
     DEAD_END = "dead_end"
-    TERMINAL = "terminal"
 
 
 @dataclass(frozen=True, slots=True)

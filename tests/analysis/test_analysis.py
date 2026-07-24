@@ -148,13 +148,36 @@ def test_terminal_finding_includes_terminal_key() -> None:
     result = analyze_flow(definition, load_pgn("1. d4 *"))
     finding = result.findings[0]
 
-    assert finding.status is AnalysisStatus.TERMINAL
+    assert finding.status is AnalysisStatus.MATCH
     assert finding.terminal == "prepared"
     assert finding.selected_rule == "d.develop.d4"
     assert result.summary.matches == 1
     assert result.summary.terminal_exits == 1
     assert result.summary.rules_declared == 1
     assert result.summary.rules_executed == 1
+
+
+def test_terminal_finding_preserves_ambiguity_status() -> None:
+    definition = parse_flow(
+        """
+        flow analysis-ambiguous-terminal
+        version 0.1
+        side white
+        d:
+            develop.d4:
+                terminal: prepared
+        e:
+            develop.e4:
+        """
+    )
+
+    result = analyze_flow(definition, load_pgn("1. d4 *"))
+    finding = result.findings[0]
+
+    assert finding.status is AnalysisStatus.AMBIGUITY
+    assert finding.terminal == "prepared"
+    assert result.summary.ambiguities == 1
+    assert result.summary.terminal_exits == 1
 
 
 def test_partial_analysis_distinguishes_benchmark_and_reached_positions() -> None:
