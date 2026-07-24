@@ -92,6 +92,8 @@ def run_learn(
                 line[node_index - 1].comment
                 if node_index
                 else repertoire.comment
+                if line_number == 1
+                else None
             )
             _clear(stream, clear_screen)
             stream.write(
@@ -120,6 +122,7 @@ def run_learn(
                 stream.write(_wrapped_paragraphs(coach) + "\n\n")
 
             prompt = "Your move: "
+            needed_correction = False
             while True:
                 answer = _prompt(stream, read_input, prompt).strip()
                 if answer.lower() == "quit":
@@ -132,12 +135,16 @@ def run_learn(
                 if entered_move == selected.move:
                     break
 
+                needed_correction = True
                 stream.write(
                     "\nNot quite.\n\n"
                     f"Expected: {selected_san}\n"
                     f"Rule: {action_key}\n"
                 )
-                guidance = _distinct_paragraphs(why)
+                guidance = _distinct_paragraphs(
+                    why,
+                    reference_node.comment,
+                )
                 if guidance:
                     stream.write("\n" + _wrapped_paragraphs(guidance) + "\n")
                 prompt = f"\nType {selected_san} to continue: "
@@ -178,9 +185,13 @@ def run_learn(
             stream.write("NEW RULE\n" if is_new_rule else "REVIEW\n")
             if is_new_rule:
                 stream.write(action_key + "\n")
-            reinforcement = _distinct_paragraphs(
-                why,
-                reference_node.comment,
+            reinforcement = (
+                ()
+                if needed_correction
+                else _distinct_paragraphs(
+                    why,
+                    reference_node.comment,
+                )
             )
             if reinforcement:
                 stream.write(

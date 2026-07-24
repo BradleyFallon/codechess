@@ -290,6 +290,27 @@ def test_repeated_rule_displays_review() -> None:
     assert "Reviewed: 1 rules" in rendered
 
 
+def test_course_introduction_appears_only_on_the_first_line() -> None:
+    output = StringIO()
+
+    run_learn(
+        parse_flow(FLOW_SOURCE),
+        load_pgn(
+            """
+            {Learn the purpose of the opening before starting.}
+            1. d4 d5 (1... Nf6) *
+            """
+        ),
+        input_fn=_answers("d4", "", "", "d4", ""),
+        output=output,
+        clear_screen=False,
+    )
+
+    assert output.getvalue().count(
+        "Coach:\nLearn the purpose of the opening before starting."
+    ) == 1
+
+
 def test_preceding_black_comment_appears_before_prompt() -> None:
     output = StringIO()
 
@@ -322,7 +343,9 @@ def test_wrong_answer_requires_correction_without_advancing() -> None:
 
     completed = run_learn(
         parse_flow(FLOW_SOURCE),
-        load_pgn("1. d4 *"),
+        load_pgn(
+            "1. d4 {Keep the c-pawn flexible for the right structure.} *"
+        ),
         input_fn=_answers("e4", "d4", ""),
         output=output,
         clear_screen=False,
@@ -333,9 +356,19 @@ def test_wrong_answer_requires_correction_without_advancing() -> None:
     assert "Not quite." in rendered
     assert "Expected: d4" in rendered
     assert "Rule: d.develop.d4" in rendered
+    assert "Claim central space and keep the c-pawn flexible." in rendered
+    assert "Keep the c-pawn flexible for the right structure." in rendered
     assert "Type d4 to continue: " in rendered
     assert rendered.count("Correct: d4") == 1
     assert "Correct: e4" not in rendered
+    correct_index = rendered.index("Correct: d4")
+    continue_index = rendered.index(
+        "Press Enter to continue.",
+        correct_index,
+    )
+    correction_feedback = rendered[correct_index:continue_index]
+    assert "Claim central space" not in correction_feedback
+    assert "Keep the c-pawn flexible" not in correction_feedback
 
 
 def test_line_completion_lists_new_rules() -> None:
