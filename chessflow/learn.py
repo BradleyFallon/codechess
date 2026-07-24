@@ -85,6 +85,8 @@ def run_learn(
                     f"Flow disagreement at {position}: "
                     f"expected {reference_node.san}, selected {selected_san}"
                 )
+            if selected.rule.definition.terminal is not None:
+                question_total = question
 
             action_key = selected.rule.definition.action.canonical_key
             why = selected.rule.definition.why
@@ -160,6 +162,8 @@ def run_learn(
             assert reference_node.san is not None
             path = (*path, reference_node.san)
             node_index += 1
+            if session.runtime.is_terminal:
+                node_index = len(line)
             _clear(stream, clear_screen)
             stream.write(
                 _status_line(

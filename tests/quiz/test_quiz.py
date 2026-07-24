@@ -172,3 +172,31 @@ def test_quiz_fails_loudly_on_flow_ambiguity() -> None:
             output=StringIO(),
             clear_screen=False,
         )
+
+
+def test_terminal_move_completes_quiz_line_without_later_pgn_moves() -> None:
+    definition = parse_flow(
+        """
+        flow terminal-quiz
+        version 0.1
+        side white
+        d:
+            develop.d4:
+                terminal: center-claimed
+        """
+    )
+    output = StringIO()
+
+    completed = run_quiz(
+        definition,
+        load_pgn("1. d4 d5 2. c4 *"),
+        input_fn=_answers("d4"),
+        output=output,
+        clear_screen=False,
+    )
+
+    rendered = output.getvalue()
+    assert completed
+    assert rendered.count("Your move: ") == 1
+    assert "Q1/1" in rendered
+    assert "First-attempt correct: 1/1" in rendered

@@ -36,6 +36,14 @@ class ConformanceRunner:
         session: FlowSession,
         path: tuple[str, ...],
     ) -> ConformanceNode:
+        if session.runtime.is_terminal:
+            if repertoire_node.children:
+                terminal = session.runtime.reached_terminals[-1]
+                raise ValueError(
+                    f"PGN continues after terminal {terminal} "
+                    f"at {_format_san_path(path)}"
+                )
+            return ConformanceNode(path_san=path)
         if not repertoire_node.children:
             return ConformanceNode(path_san=path)
         if (

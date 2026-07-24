@@ -408,6 +408,35 @@ def test_quit_stops_the_walkthrough() -> None:
     assert "Opening walkthrough complete." not in output.getvalue()
 
 
+def test_terminal_move_completes_learn_line_without_later_pgn_moves() -> None:
+    definition = parse_flow(
+        """
+        flow terminal-learn
+        version 0.1
+        side white
+        d:
+            develop.d4:
+                terminal: center-claimed
+                why: Take the available advantage.
+        """
+    )
+    output = StringIO()
+
+    completed = run_learn(
+        definition,
+        load_pgn("1. d4 d5 2. c4 *"),
+        input_fn=_answers("d4", ""),
+        output=output,
+        clear_screen=False,
+    )
+
+    rendered = output.getvalue()
+    assert completed
+    assert rendered.count("Your move: ") == 1
+    assert "Q1/1" in rendered
+    assert "Line complete." in rendered
+
+
 def test_accelerated_london_learn_example_matches_the_full_flow() -> None:
     repository = Path(__file__).parents[1]
     definition = parse_flow(

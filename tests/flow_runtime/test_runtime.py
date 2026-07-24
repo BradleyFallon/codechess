@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import chess
+import pytest
 
 from chessflow import FlowBoard, FlowRuntime, parse_flow
 from chessflow.flow_language.expressions import Name, parse_expression
@@ -388,3 +389,32 @@ def test_retreat_resolves_like_develop_without_marking_piece_developed() -> None
     assert board.flow_piece("nq").square == chess.C3
     assert not board.flow_piece("nq").has_developed
     assert flow.executed_action_keys == {"nq.retreat.c3"}
+
+
+def test_terminal_stops_candidate_evaluation_and_further_moves() -> None:
+    definition = parse_flow(
+        """
+        flow terminal
+        version 0.1
+        side white
+        d:
+            develop.d4:
+                terminal: center-claimed
+        e:
+            develop.e4:
+        """
+    )
+    board = FlowBoard()
+    flow = FlowRuntime(definition, board)
+    candidates = flow.evaluate_turn(board)
+
+    flow.execute(candidates[0], board)
+
+    assert flow.is_terminal
+    assert flow.reached_terminals == ["center-claimed"]
+    assert flow.evaluate_turn(board) == []
+    assert flow.collect_candidates(board) == []
+    with pytest.raises(ValueError, match="after terminal"):
+        flow.execute(candidates[1], board)
+    with pytest.raises(ValueError, match="after terminal"):
+        flow.push_opponent(board.chess_board.parse_san("d5"), board)

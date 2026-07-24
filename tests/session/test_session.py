@@ -19,7 +19,6 @@ flags:
 d:
     develop.d4:
         set: center-claimed
-        terminal: center-claimed
 
 bq:
     develop.f4:
@@ -91,7 +90,7 @@ def test_clone_restores_complete_runtime_state_with_distinct_objects() -> None:
         "d.develop.d4",
         "bq.develop.f4",
     }
-    assert clone.runtime.reached_terminals == ["center-claimed"]
+    assert clone.runtime.reached_terminals == []
     assert _rule(clone, "d.develop.d4").status is RuleStatus.EXECUTED
     assert _rule(clone, "bq.develop.f4").status is RuleStatus.EXECUTED
     assert _rule(clone, "c.develop.c3").status is RuleStatus.EXPIRED

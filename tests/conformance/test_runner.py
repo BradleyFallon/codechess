@@ -1,4 +1,5 @@
 import chess
+import pytest
 
 from chessflow import parse_flow
 from chessflow.conformance import (
@@ -163,3 +164,42 @@ def test_reference_leaf_completes_without_an_extra_dead_end() -> None:
     assert [node.status for node in decisions] == [ConformanceStatus.MATCH]
     assert result.root.children[0].status is None
     assert result.root.children[0].children == []
+
+
+def test_terminal_reference_leaf_is_accepted() -> None:
+    definition = parse_flow(
+        """
+        flow terminal-leaf
+        version 0.1
+        side white
+        d:
+            develop.d4:
+                terminal: center-claimed
+        """
+    )
+
+    result = run_conformance(definition, load_pgn("1. d4 *"))
+
+    assert result.root.status is ConformanceStatus.MATCH
+
+
+def test_conformance_rejects_a_pgn_continuing_after_terminal() -> None:
+    definition = parse_flow(
+        """
+        flow terminal-continuation
+        version 0.1
+        side white
+        d:
+            develop.d4:
+                terminal: center-claimed
+        """
+    )
+
+    with pytest.raises(
+        ValueError,
+        match=(
+            "PGN continues after terminal center-claimed "
+            r"at 1\.d4"
+        ),
+    ):
+        run_conformance(definition, load_pgn("1. d4 d5 2. c4 *"))

@@ -53,7 +53,11 @@ def test_accelerated_london_benchmark_tree_and_current_baseline() -> None:
         "Bd6",
     ]
 
-    result = run_conformance(parse_flow(FLOW.read_text()), repertoire)
+    nonterminal_flow = FLOW.read_text().replace(
+        "        terminal: vertical-slice-complete\n",
+        "",
+    )
+    result = run_conformance(parse_flow(nonterminal_flow), repertoire)
     summary = summarize_conformance(result)
 
     assert summary.positions_tested == 18

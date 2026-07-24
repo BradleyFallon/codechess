@@ -131,6 +131,8 @@ def run_quiz(
                     f"Flow disagreement at {position}: "
                     f"expected {reference_node.san}, selected {selected_san}"
                 )
+            if selected.rule.definition.terminal is not None:
+                question_total = question
 
             if clear_screen:
                 stream.write("\033[2J\033[H")
@@ -168,6 +170,8 @@ def run_quiz(
                     assert reference_node.san is not None
                     path = (*path, reference_node.san)
                     node_index += 1
+                    if session.runtime.is_terminal:
+                        node_index = len(line)
                     stream.write("Correct.\n")
                     break
 
@@ -187,7 +191,7 @@ def run_quiz(
         stream.write(
             "\nLine complete.\n"
             "First-attempt correct: "
-            f"{first_attempt_correct}/{question_total}\n"
+            f"{first_attempt_correct}/{question}\n"
         )
         if line_number < len(lines):
             answer = _prompt(stream, read_input, "Press Enter for next line. ")

@@ -36,6 +36,10 @@ class FlowRuntime:
         self._bind_goals(board)
         self.update_goals(board)
 
+    @property
+    def is_terminal(self) -> bool:
+        return bool(self.reached_terminals)
+
     def _bind_goals(self, board: FlowBoard) -> None:
         for definition in self.definition.goals:
             status = (
@@ -158,6 +162,8 @@ class FlowRuntime:
             raise KeyError(f"Unknown goal: {key!r}") from exc
 
     def collect_candidates(self, board: FlowBoard) -> list[Candidate]:
+        if self.is_terminal:
+            return []
         candidates: list[Candidate] = []
         current_goal = self.current_goal(board)
         current_goal_key = (
@@ -183,6 +189,8 @@ class FlowRuntime:
         return candidates
 
     def evaluate_turn(self, board: FlowBoard) -> list[Candidate]:
+        if self.is_terminal:
+            return []
         board.rebuild_relationships()
         self.update_goals(board)
         self.expire_rules(board)
@@ -194,6 +202,11 @@ class FlowRuntime:
         return candidates
 
     def execute(self, candidate: Candidate, board: FlowBoard) -> None:
+        if self.is_terminal:
+            raise ValueError(
+                "Cannot execute after terminal "
+                f"{self.reached_terminals[-1]!r}"
+            )
         rule = candidate.rule
         if rule.status is not RuleStatus.ACTIVE:
             raise ValueError("Only an active rule can execute")
@@ -212,6 +225,11 @@ class FlowRuntime:
         self.update_goals(board)
 
     def push_opponent(self, move: chess.Move, board: FlowBoard) -> None:
+        if self.is_terminal:
+            raise ValueError(
+                "Cannot push an opponent move after terminal "
+                f"{self.reached_terminals[-1]!r}"
+            )
         if board.chess_board.turn == self.definition.side.chess_color:
             raise ValueError("Cannot push an opponent move on the flow side's turn")
         board.push(move)
