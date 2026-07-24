@@ -75,6 +75,7 @@ class LearnSession:
         repertoire: RepertoireNode,
     ) -> LearnSession:
         session = cls(definition, repertoire)
+        session._validate_lines()
         session._start_line(0)
         return session
 
@@ -179,6 +180,36 @@ class LearnSession:
     @property
     def _current_line(self) -> tuple[RepertoireNode, ...]:
         return self.lines[self.line_index]
+
+    def _validate_lines(self) -> None:
+        learnable = tuple(
+            self._line_has_flow_move(line) for line in self.lines
+        )
+        if not learnable or not any(learnable):
+            raise LearnSessionError(
+                "Repertoire contains no learnable lines"
+            )
+        for line_number, has_flow_move in enumerate(
+            learnable,
+            start=1,
+        ):
+            if not has_flow_move:
+                raise LearnSessionError(
+                    f"Repertoire line {line_number} contains no "
+                    "decision for the flow side"
+                )
+
+    def _line_has_flow_move(
+        self,
+        line: tuple[RepertoireNode, ...],
+    ) -> bool:
+        board = chess.Board(self.repertoire.fen)
+        for node in line:
+            if board.turn == self.definition.side.chess_color:
+                return True
+            assert node.move is not None
+            board.push(node.move)
+        return False
 
     def _start_line(self, line_index: int) -> None:
         self.line_index = line_index

@@ -87,6 +87,29 @@ def test_initial_view_has_goal_moves_and_structured_expected_move() -> None:
     assert view.expected_move.promotion is None
 
 
+def test_empty_repertoire_fails_with_domain_error() -> None:
+    with pytest.raises(
+        LearnSessionError,
+        match="Repertoire contains no learnable lines",
+    ):
+        _session(pgn="*")
+
+
+def test_line_without_a_flow_side_decision_fails_early() -> None:
+    pgn = """
+    [SetUp "1"]
+    [FEN "7k/8/8/8/8/8/8/K7 b - - 0 1"]
+
+    1... Kg7 *
+    """
+
+    with pytest.raises(
+        LearnSessionError,
+        match="Repertoire contains no learnable lines",
+    ):
+        _session(pgn=pgn)
+
+
 def test_invalid_san_and_legal_incorrect_move_do_not_advance() -> None:
     session = _session()
     initial_fen = session.view().fen
