@@ -189,17 +189,29 @@ def run_learn(
             stream.write("NEW RULE\n" if is_new_rule else "REVIEW\n")
             if is_new_rule:
                 stream.write(action_key + "\n")
-            reinforcement = (
-                ()
-                if needed_correction
-                else _distinct_paragraphs(
+            terminal = selected.rule.definition.terminal
+            reinforcement: tuple[str, ...]
+            if needed_correction:
+                reinforcement = ()
+            elif terminal is not None:
+                reinforcement = _distinct_paragraphs(
+                    reference_node.comment
+                )
+            else:
+                reinforcement = _distinct_paragraphs(
                     why,
                     reference_node.comment,
                 )
-            )
             if reinforcement:
                 stream.write(
                     "\n" + _wrapped_paragraphs(reinforcement) + "\n"
+                )
+            if terminal is not None:
+                explanation = None if needed_correction else why
+                stream.write(
+                    "\n"
+                    + _opening_exit_text(terminal, explanation)
+                    + "\n"
                 )
             answer = _prompt(
                 stream,
@@ -239,6 +251,22 @@ def run_learn(
         "  codechess quiz opening.flow repertoire.pgn\n"
     )
     return True
+
+
+def _opening_exit_text(
+    terminal: str,
+    explanation: str | None,
+) -> str:
+    outcome = explanation or (
+        "Opening preparation ends here. Continue the game "
+        "from this position."
+    )
+    return (
+        "OPENING EXIT\n\n"
+        + terminal
+        + "\n\n"
+        + textwrap.fill(_normalize(outcome), width=50)
+    )
 
 
 @dataclass(slots=True)

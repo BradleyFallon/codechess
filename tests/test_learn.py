@@ -434,6 +434,11 @@ def test_terminal_move_completes_learn_line_without_later_pgn_moves() -> None:
     assert completed
     assert rendered.count("Your move: ") == 1
     assert "Q1/1" in rendered
+    assert (
+        "OPENING EXIT\n\ncenter-claimed\n\n"
+        "Take the available advantage."
+    ) in rendered
+    assert rendered.index("OPENING EXIT") < rendered.index("Line complete.")
     assert "Line complete." in rendered
 
 

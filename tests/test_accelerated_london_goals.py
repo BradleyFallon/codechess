@@ -59,4 +59,8 @@ def test_goal_based_london_course_completes_the_full_learn_walkthrough() -> None
     assert "NEW GOAL" in rendered
     assert "GOAL COMPLETE" in rendered
     assert "GOAL RETIRED" in rendered
+    assert rendered.count("OPENING EXIT") == 3
+    assert "out-of-system-advantage" in rendered
+    assert "fork-rook-won" in rendered
+    assert "queen-won" in rendered
     assert "Learn complete · 9 lines" in rendered
