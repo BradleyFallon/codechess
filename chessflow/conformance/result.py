@@ -23,6 +23,8 @@ class CandidateRecord:
 @dataclass(slots=True)
 class ConformanceNode:
     path_san: tuple[str, ...]
+    position_path_san: tuple[str, ...] = ()
+    fen: str = ""
     status: ConformanceStatus | None = None
     expected_moves: tuple[chess.Move, ...] = ()
     expected_san: tuple[str, ...] = ()
@@ -30,6 +32,9 @@ class ConformanceNode:
     selected_action: str | None = None
     selected_move: chess.Move | None = None
     selected_san: str | None = None
+    current_goal: str | None = None
+    fallback_goal: str | None = None
+    terminal: str | None = None
     children: list[ConformanceNode] = field(default_factory=list)
 
 

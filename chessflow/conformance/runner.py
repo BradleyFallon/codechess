@@ -18,9 +18,12 @@ class ConformanceRunner:
         self,
         definition: FlowDefinition,
         repertoire: RepertoireNode,
+        *,
+        strict_goal_dead_ends: bool = True,
     ) -> None:
         self.definition = definition
         self.repertoire = repertoire
+        self.strict_goal_dead_ends = strict_goal_dead_ends
 
     def run(self) -> ConformanceResult:
         session = FlowSession.fresh(self.definition)
@@ -69,10 +72,22 @@ class ConformanceRunner:
             for child in repertoire_node.children
             if child.san is not None
         )
+        current = session.runtime.current_goal(session.board)
+        fallback = session.runtime.fallback_goal(session.board)
+        current_goal = (
+            None if current is None else current.definition.key
+        )
+        fallback_goal = (
+            None if fallback is None else fallback.definition.key
+        )
         try:
-            candidates = tuple(session.runtime.evaluate_turn(session.board))
+            candidates = tuple(
+                session.runtime.evaluate_turn(session.board)
+            )
         except GoalDeadEndError as exc:
-            raise exc.at_path(_format_san_path(path)) from exc
+            if self.strict_goal_dead_ends:
+                raise exc.at_path(_format_san_path(path)) from exc
+            candidates = ()
         candidate_records = tuple(
             CandidateRecord(
                 action_key=candidate.rule.definition.action.canonical_key,
@@ -84,9 +99,13 @@ class ConformanceRunner:
         if not candidates:
             return ConformanceNode(
                 path_san=path,
+                position_path_san=path,
+                fen=session.board.fen,
                 status=ConformanceStatus.DEAD_END,
                 expected_moves=expected_moves,
                 expected_san=expected_san,
+                current_goal=current_goal,
+                fallback_goal=fallback_goal,
             )
 
         selected = candidates[0]
@@ -102,6 +121,8 @@ class ConformanceRunner:
         if matching_child is None:
             return ConformanceNode(
                 path_san=path,
+                position_path_san=path,
+                fen=session.board.fen,
                 status=ConformanceStatus.DISAGREEMENT,
                 expected_moves=expected_moves,
                 expected_san=expected_san,
@@ -109,6 +130,8 @@ class ConformanceRunner:
                 selected_action=selected_record.action_key,
                 selected_move=selected_record.move,
                 selected_san=selected_record.san,
+                current_goal=current_goal,
+                fallback_goal=fallback_goal,
             )
 
         status = (
@@ -117,10 +140,13 @@ class ConformanceRunner:
             else ConformanceStatus.MATCH
         )
         session.runtime.execute(selected, session.board)
+        terminal = selected.rule.definition.terminal
         assert matching_child.san is not None
         matched_path = (*path, matching_child.san)
         return ConformanceNode(
             path_san=matched_path,
+            position_path_san=path,
+            fen=repertoire_node.fen,
             status=status,
             expected_moves=expected_moves,
             expected_san=expected_san,
@@ -128,6 +154,9 @@ class ConformanceRunner:
             selected_action=selected_record.action_key,
             selected_move=selected_record.move,
             selected_san=selected_record.san,
+            current_goal=current_goal,
+            fallback_goal=fallback_goal,
+            terminal=terminal,
             children=[
                 self._walk(matching_child, session, matched_path)
             ],
@@ -153,8 +182,14 @@ class ConformanceRunner:
 def run_conformance(
     definition: FlowDefinition,
     repertoire: RepertoireNode,
+    *,
+    strict_goal_dead_ends: bool = True,
 ) -> ConformanceResult:
-    return ConformanceRunner(definition, repertoire).run()
+    return ConformanceRunner(
+        definition,
+        repertoire,
+        strict_goal_dead_ends=strict_goal_dead_ends,
+    ).run()
 
 
 def _format_san_path(path: tuple[str, ...]) -> str:
