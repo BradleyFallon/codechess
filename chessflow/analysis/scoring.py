@@ -5,11 +5,14 @@ from dataclasses import dataclass
 from chessflow.analysis.model import AnalysisResult
 
 
+SCORE_VERSION = "conformance-v0.2"
+
+
 @dataclass(frozen=True, slots=True)
 class RulesetScore:
     """Experimental score for one ruleset against one specific PGN.
 
-    Version ``conformance-v0.1`` uses deterministic conformance counts only.
+    Version ``conformance-v0.2`` uses deterministic conformance counts only.
     Scores produced from different benchmark PGNs are not directly
     comparable, and the elegance formula is deliberately provisional.
     """
@@ -53,7 +56,7 @@ def score_analysis(result: AnalysisResult) -> RulesetScore:
     quality = completeness * reliability
     elegance = quality / (1.0 + 0.05 * raw_rule_cost)
     return RulesetScore(
-        version="conformance-v0.1",
+        version=SCORE_VERSION,
         completeness=completeness,
         correctness=correctness,
         reliability=reliability,

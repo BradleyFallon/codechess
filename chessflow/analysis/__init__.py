@@ -6,7 +6,11 @@ from chessflow.analysis.model import (
     AnalysisStatus,
     AnalysisSummary,
 )
-from chessflow.analysis.scoring import RulesetScore, score_analysis
+from chessflow.analysis.scoring import (
+    SCORE_VERSION,
+    RulesetScore,
+    score_analysis,
+)
 
 __all__ = [
     "AnalysisCandidate",
@@ -15,6 +19,7 @@ __all__ = [
     "AnalysisStatus",
     "AnalysisSummary",
     "RulesetScore",
+    "SCORE_VERSION",
     "analyze_flow",
     "score_analysis",
 ]

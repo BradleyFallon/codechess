@@ -3,6 +3,7 @@ from dataclasses import replace
 import pytest
 
 from chessflow.analysis import (
+    SCORE_VERSION,
     AnalysisResult,
     AnalysisSummary,
     score_analysis,
@@ -39,7 +40,8 @@ def _result(
 def test_perfect_small_flow_score_and_version() -> None:
     score = score_analysis(_result())
 
-    assert score.version == "conformance-v0.1"
+    assert SCORE_VERSION == "conformance-v0.2"
+    assert score.version == SCORE_VERSION
     assert score.completeness == 1.0
     assert score.correctness == 1.0
     assert score.reliability == 1.0
