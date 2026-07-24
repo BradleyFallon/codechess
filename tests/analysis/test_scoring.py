@@ -63,12 +63,13 @@ def test_partial_coverage_reduces_completeness() -> None:
 
 
 @pytest.mark.parametrize(
-    ("ambiguities", "disagreements"),
-    ((1, 0), (0, 1)),
+    ("ambiguities", "disagreements", "expected_correctness"),
+    ((1, 0, 1.0), (0, 1, 0.5)),
 )
-def test_ambiguity_or_disagreement_reduces_reliability(
+def test_correctness_credits_ambiguity_but_not_disagreement(
     ambiguities: int,
     disagreements: int,
+    expected_correctness: float,
 ) -> None:
     score = score_analysis(
         _result(
@@ -81,7 +82,7 @@ def test_ambiguity_or_disagreement_reduces_reliability(
     )
 
     assert score.reliability == 0.5
-    assert score.correctness == 0.5
+    assert score.correctness == expected_correctness
 
 
 def test_more_declared_rules_lower_elegance_at_equal_quality() -> None:

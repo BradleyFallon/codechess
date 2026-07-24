@@ -26,24 +26,24 @@ class RulesetScore:
 
 
 def score_analysis(result: AnalysisResult) -> RulesetScore:
+    """Score PGN coverage, move agreement, and deterministic selection.
+
+    An ambiguity remains correct when the expected move is selected, but it
+    is not reliable because the flow offered more than one candidate.
+    """
+
     summary = result.summary
     completeness = _ratio(
         summary.positions_evaluated,
         summary.benchmark_positions,
     )
     correctness = _ratio(
-        summary.matches,
+        summary.matches + summary.ambiguities,
         summary.positions_evaluated,
-    )
-    reliability_denominator = (
-        summary.matches
-        + summary.ambiguities
-        + summary.disagreements
-        + summary.dead_ends
     )
     reliability = _ratio(
         summary.matches,
-        reliability_denominator,
+        summary.positions_evaluated,
     )
     raw_rule_cost = float(summary.rules_declared)
     rule_utilization = _ratio(
