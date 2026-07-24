@@ -95,17 +95,17 @@ def test_empty_repertoire_fails_with_domain_error() -> None:
         _session(pgn="*")
 
 
-def test_line_without_a_flow_side_decision_fails_early() -> None:
+def test_custom_repertoire_position_fails_with_domain_error() -> None:
     pgn = """
     [SetUp "1"]
-    [FEN "7k/8/8/8/8/8/8/K7 b - - 0 1"]
+    [FEN "7k/8/8/8/8/8/8/K7 w - - 0 1"]
 
-    1... Kg7 *
+    1. Kb2 *
     """
 
     with pytest.raises(
         LearnSessionError,
-        match="Repertoire contains no learnable lines",
+        match="Flow and repertoire must begin from the same position",
     ):
         _session(pgn=pgn)
 

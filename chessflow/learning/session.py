@@ -75,6 +75,10 @@ class LearnSession:
         repertoire: RepertoireNode,
     ) -> LearnSession:
         session = cls(definition, repertoire)
+        if session.flow_session.board.fen != repertoire.fen:
+            raise LearnSessionError(
+                "Flow and repertoire must begin from the same position"
+            )
         session._validate_lines()
         session._start_line(0)
         return session
