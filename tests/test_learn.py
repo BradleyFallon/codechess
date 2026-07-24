@@ -25,6 +25,32 @@ bq:
         why: Develop the bishop outside the pawn chain.
 """
 
+GOAL_FLOW_SOURCE = """
+flow learn-goals
+version 0.2
+side white
+goals:
+    urgent:
+        when: square.a6.has(enemy.pawn)
+        while: true
+        complete: false
+        title: Use the urgent plan
+        plan: Respond to the new opportunity before continuing normal development.
+        abandoned: The urgent opportunity is no longer available.
+    foundation:
+        while: true
+        complete: false
+        title: Build the foundation
+        plan: Claim central space while keeping the position flexible.
+        abandoned: The foundation is no longer useful.
+d:
+    develop.d4:
+        goals: foundation
+c:
+    develop.c4:
+        goals: urgent
+"""
+
 
 def _answers(*answers: str):
     iterator = iter(answers)
@@ -53,6 +79,104 @@ def test_first_encounter_displays_new_rule_and_reinforcement() -> None:
     assert "NEW RULE\nd.develop.d4" in rendered
     assert "Claim central space and keep the c-pawn flexible." in rendered
     assert "This keeps the c-pawn available for c3 or c4." in rendered
+
+
+def test_learn_displays_the_current_goal_and_plan() -> None:
+    output = StringIO()
+
+    run_learn(
+        parse_flow(GOAL_FLOW_SOURCE),
+        load_pgn("1. d4 *"),
+        input_fn=_answers("quit"),
+        output=output,
+        clear_screen=False,
+    )
+
+    rendered = output.getvalue()
+    assert "Goal:\nBuild the foundation." in rendered
+    assert "Plan:\nClaim central space while keeping the" in rendered
+    assert "Fallback:\nNone" in rendered
+
+
+def test_learn_announces_a_new_higher_priority_goal() -> None:
+    output = StringIO()
+
+    run_learn(
+        parse_flow(GOAL_FLOW_SOURCE),
+        load_pgn("1. d4 a6 2. c4 *"),
+        input_fn=_answers("d4", "", "quit"),
+        output=output,
+        clear_screen=False,
+    )
+
+    rendered = output.getvalue()
+    assert "NEW GOAL" in rendered
+    assert "Goal:\nUse the urgent plan." in rendered
+    assert "Fallback:\nBuild the foundation." in rendered
+
+
+def test_learn_announces_goal_completion() -> None:
+    definition = parse_flow(
+        GOAL_FLOW_SOURCE.replace(
+            "complete: false\n        title: Build the foundation",
+            "complete: played(d.develop.d4)\n"
+            "        title: Build the foundation",
+        )
+    )
+    output = StringIO()
+
+    run_learn(
+        definition,
+        load_pgn("1. d4 *"),
+        input_fn=_answers("d4", ""),
+        output=output,
+        clear_screen=False,
+    )
+
+    assert "GOAL COMPLETE\n\nBuild the foundation." in output.getvalue()
+
+
+def test_learn_announces_retirement_and_fallback_transition() -> None:
+    definition = parse_flow(
+        """
+        flow learn-retirement
+        version 0.2
+        side white
+        goals:
+            queenside:
+                while: square.a7.has(enemy.pawn)
+                complete: false
+                title: Use the queenside window
+                plan: Act while the a-pawn remains on a7.
+                abandoned: The a-pawn moved and closed the window.
+            fallback:
+                while: true
+                complete: false
+                title: Continue normal development
+                plan: Return to a sound central setup.
+                abandoned: Normal development is unavailable.
+        d:
+            develop.d4:
+                goals: queenside
+        c:
+            develop.c4:
+                goals: fallback
+        """
+    )
+    output = StringIO()
+
+    run_learn(
+        definition,
+        load_pgn("1. d4 a6 2. c4 *"),
+        input_fn=_answers("d4", "", "quit"),
+        output=output,
+        clear_screen=False,
+    )
+
+    rendered = output.getvalue()
+    assert "GOAL RETIRED\n\nUse the queenside window." in rendered
+    assert "Reason:\nThe a-pawn moved and closed the window." in rendered
+    assert "Current goal:\nContinue normal development." in rendered
 
 
 def test_correct_answer_renders_the_moved_piece_before_confirmation() -> None:

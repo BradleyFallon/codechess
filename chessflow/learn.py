@@ -1,12 +1,19 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import dataclass, field
 import sys
 import textwrap
 from typing import TextIO
 
+from chessflow.chess_model import FlowBoard
 from chessflow.flow_language.ast import FlowDefinition
-from chessflow.flow_runtime import GoalDeadEndError
+from chessflow.flow_runtime import (
+    FlowRuntime,
+    GoalDeadEndError,
+    GoalRuntime,
+    GoalStatus,
+)
 from chessflow.quiz import expand_lines, render_board
 from chessflow.reporting import format_san_path
 from chessflow.repertoire import RepertoireNode
@@ -38,6 +45,7 @@ def run_learn(
         node_index = 0
         new_rules: list[tuple[str, str | None]] = []
         reviewed_rules = 0
+        goal_display = _GoalDisplayState()
 
         while node_index < len(line):
             reference_node = line[node_index]
@@ -98,6 +106,14 @@ def run_learn(
             )
             stream.write(position + "\n\n")
             stream.write(render_board(session.board.chess_board) + "\n\n")
+            goal_text = _goal_update_text(
+                session.runtime,
+                session.board,
+                goal_display,
+                show_normal=True,
+            )
+            if goal_text:
+                stream.write(goal_text + "\n\n")
             coach = _distinct_paragraphs(preceding_comment)
             if coach:
                 stream.write("Coach:\n")
@@ -151,6 +167,14 @@ def run_learn(
             stream.write(format_san_path(path) + "\n\n")
             stream.write(render_board(session.board.chess_board) + "\n\n")
             stream.write(f"Correct: {selected_san}\n\n")
+            goal_text = _goal_update_text(
+                session.runtime,
+                session.board,
+                goal_display,
+                show_normal=False,
+            )
+            if goal_text:
+                stream.write(goal_text + "\n\n")
             stream.write("NEW RULE\n" if is_new_rule else "REVIEW\n")
             if is_new_rule:
                 stream.write(action_key + "\n")
@@ -200,6 +224,120 @@ def run_learn(
         "  codechess quiz opening.flow repertoire.pgn\n"
     )
     return True
+
+
+@dataclass(slots=True)
+class _GoalDisplayState:
+    initialized: bool = False
+    current_key: str | None = None
+    statuses: dict[str, GoalStatus] = field(default_factory=dict)
+
+
+def _goal_update_text(
+    runtime: FlowRuntime,
+    board: FlowBoard,
+    state: _GoalDisplayState,
+    *,
+    show_normal: bool,
+) -> str:
+    if not runtime.definition.goals:
+        return ""
+
+    current = runtime.current_goal(board)
+    fallback = runtime.fallback_goal(board)
+    statuses = {
+        goal.key: runtime.goal_status(goal.key)
+        for goal in runtime.definition.goals
+    }
+    current_key = (
+        None if current is None else current.definition.key
+    )
+
+    if not state.initialized:
+        state.initialized = True
+        state.current_key = current_key
+        state.statuses = statuses
+        return _goal_context(current, fallback, include_fallback=True)
+
+    sections: list[str] = []
+    for definition in runtime.definition.goals:
+        previous = state.statuses[definition.key]
+        current_status = statuses[definition.key]
+        if (
+            previous is GoalStatus.ACTIVE
+            and current_status is GoalStatus.COMPLETED
+        ):
+            sections.append(
+                "GOAL COMPLETE\n\n" + _sentence(definition.title)
+            )
+        elif (
+            previous is GoalStatus.ACTIVE
+            and current_status is GoalStatus.RETIRED
+        ):
+            current_title = (
+                "None"
+                if current is None
+                else _sentence(current.definition.title)
+            )
+            sections.append(
+                "GOAL RETIRED\n\n"
+                + _sentence(definition.title)
+                + "\n\nReason:\n"
+                + textwrap.fill(definition.abandoned, width=50)
+                + "\n\nCurrent goal:\n"
+                + current_title
+            )
+
+    newly_selected = (
+        current is not None
+        and current_key != state.current_key
+        and state.statuses[current.definition.key] is GoalStatus.PENDING
+        and statuses[current.definition.key] is GoalStatus.ACTIVE
+    )
+    if newly_selected:
+        sections.append(
+            "NEW GOAL\n\n"
+            + _goal_context(current, fallback, include_fallback=True)
+        )
+    elif not sections and show_normal:
+        sections.append(
+            _goal_context(
+                current,
+                fallback,
+                include_fallback=current_key != state.current_key,
+            )
+        )
+
+    state.current_key = current_key
+    state.statuses = statuses
+    return "\n\n".join(section for section in sections if section)
+
+
+def _goal_context(
+    current: GoalRuntime | None,
+    fallback: GoalRuntime | None,
+    *,
+    include_fallback: bool,
+) -> str:
+    if current is None:
+        return "Goal:\nNone"
+    sections = [
+        "Goal:\n" + _sentence(current.definition.title),
+        "Plan:\n" + textwrap.fill(current.definition.plan, width=50),
+    ]
+    if include_fallback:
+        fallback_title = (
+            "None"
+            if fallback is None
+            else _sentence(fallback.definition.title)
+        )
+        sections.append("Fallback:\n" + fallback_title)
+    return "\n\n".join(sections)
+
+
+def _sentence(text: str) -> str:
+    normalized = _normalize(text)
+    return normalized if normalized.endswith((".", "!", "?")) else normalized + "."
 
 
 def _status_line(
