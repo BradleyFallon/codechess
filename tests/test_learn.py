@@ -117,11 +117,27 @@ def test_learn_announces_a_new_higher_priority_goal() -> None:
 
 def test_learn_announces_goal_completion() -> None:
     definition = parse_flow(
-        GOAL_FLOW_SOURCE.replace(
-            "complete: false\n        title: Build the foundation",
-            "complete: played(d.develop.d4)\n"
-            "        title: Build the foundation",
-        )
+        """
+        flow learn-completion
+        version 0.2
+        side white
+        goals:
+            center:
+                while: true
+                complete: played(d.develop.d4)
+                title: Claim the center
+                plan: Establish a pawn on d4.
+                abandoned: The center can no longer be claimed.
+            development:
+                while: true
+                complete: false
+                title: Continue development
+                plan: Develop the minor pieces and castle.
+                abandoned: Normal development is unavailable.
+        d:
+            develop.d4:
+                goals: center
+        """
     )
     output = StringIO()
 
@@ -133,7 +149,11 @@ def test_learn_announces_goal_completion() -> None:
         clear_screen=False,
     )
 
-    assert "GOAL COMPLETE\n\nBuild the foundation." in output.getvalue()
+    rendered = output.getvalue()
+    assert "GOAL COMPLETE\n\nClaim the center." in rendered
+    assert "Current goal:\nContinue development." in rendered
+    assert "Plan:\nDevelop the minor pieces and castle." in rendered
+    assert "Fallback:\nNone" in rendered
 
 
 def test_learn_announces_retirement_and_fallback_transition() -> None:
@@ -177,6 +197,59 @@ def test_learn_announces_retirement_and_fallback_transition() -> None:
     assert "GOAL RETIRED\n\nUse the queenside window." in rendered
     assert "Reason:\nThe a-pawn moved and closed the window." in rendered
     assert "Current goal:\nContinue normal development." in rendered
+    assert "Plan:\nReturn to a sound central setup." in rendered
+    assert "Fallback:\nNone" in rendered
+
+
+def test_learn_announces_fallback_updates_without_changing_current_goal() -> None:
+    definition = parse_flow(
+        """
+        flow learn-fallback
+        version 0.2
+        side white
+        goals:
+            current:
+                while: true
+                complete: false
+                title: Keep the current plan
+                plan: Continue the stable central setup.
+                abandoned: The stable setup is unavailable.
+            tactical-fallback:
+                when: square.a6.has(enemy.pawn)
+                while: true
+                complete: false
+                title: Use the tactical fallback
+                plan: Exploit the newly available queenside target.
+                abandoned: The tactical target disappeared.
+            quiet-fallback:
+                while: true
+                complete: false
+                title: Use the quiet fallback
+                plan: Complete ordinary development.
+                abandoned: Quiet development is unavailable.
+        d:
+            develop.d4:
+                goals: current
+        c:
+            develop.c4:
+                goals: current
+                when: played(d.develop.d4)
+        """
+    )
+    output = StringIO()
+
+    run_learn(
+        definition,
+        load_pgn("1. d4 a6 2. c4 *"),
+        input_fn=_answers("d4", "", "quit"),
+        output=output,
+        clear_screen=False,
+    )
+
+    rendered = output.getvalue()
+    assert "FALLBACK UPDATED" in rendered
+    assert "Goal:\nKeep the current plan." in rendered
+    assert "Fallback:\nUse the tactical fallback." in rendered
 
 
 def test_correct_answer_renders_the_moved_piece_before_confirmation() -> None:

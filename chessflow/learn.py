@@ -230,6 +230,7 @@ def run_learn(
 class _GoalDisplayState:
     initialized: bool = False
     current_key: str | None = None
+    fallback_key: str | None = None
     statuses: dict[str, GoalStatus] = field(default_factory=dict)
 
 
@@ -252,51 +253,73 @@ def _goal_update_text(
     current_key = (
         None if current is None else current.definition.key
     )
+    fallback_key = (
+        None if fallback is None else fallback.definition.key
+    )
 
     if not state.initialized:
         state.initialized = True
         state.current_key = current_key
+        state.fallback_key = fallback_key
         state.statuses = statuses
         return _goal_context(current, fallback, include_fallback=True)
 
     sections: list[str] = []
-    for definition in runtime.definition.goals:
-        previous = state.statuses[definition.key]
-        current_status = statuses[definition.key]
-        if (
-            previous is GoalStatus.ACTIVE
-            and current_status is GoalStatus.COMPLETED
-        ):
+    current_changed = current_key != state.current_key
+    fallback_changed = fallback_key != state.fallback_key
+    if current_changed and state.current_key is not None:
+        previous_definition = next(
+            goal
+            for goal in runtime.definition.goals
+            if goal.key == state.current_key
+        )
+        previous_status = statuses[state.current_key]
+        if previous_status is GoalStatus.COMPLETED:
             sections.append(
-                "GOAL COMPLETE\n\n" + _sentence(definition.title)
+                "GOAL COMPLETE\n\n"
+                + _sentence(previous_definition.title)
+                + "\n\n"
+                + _goal_context(
+                    current,
+                    fallback,
+                    include_fallback=True,
+                    heading="Current goal",
+                )
             )
-        elif (
-            previous is GoalStatus.ACTIVE
-            and current_status is GoalStatus.RETIRED
-        ):
-            current_title = (
-                "None"
-                if current is None
-                else _sentence(current.definition.title)
-            )
+        elif previous_status is GoalStatus.RETIRED:
             sections.append(
                 "GOAL RETIRED\n\n"
-                + _sentence(definition.title)
+                + _sentence(previous_definition.title)
                 + "\n\nReason:\n"
-                + textwrap.fill(definition.abandoned, width=50)
-                + "\n\nCurrent goal:\n"
-                + current_title
+                + textwrap.fill(
+                    previous_definition.abandoned,
+                    width=50,
+                )
+                + "\n\n"
+                + _goal_context(
+                    current,
+                    fallback,
+                    include_fallback=True,
+                    heading="Current goal",
+                )
             )
-
-    newly_selected = (
-        current is not None
-        and current_key != state.current_key
-        and state.statuses[current.definition.key] is GoalStatus.PENDING
-        and statuses[current.definition.key] is GoalStatus.ACTIVE
-    )
-    if newly_selected:
+        else:
+            sections.append(
+                "NEW GOAL\n\n"
+                + _goal_context(
+                    current,
+                    fallback,
+                    include_fallback=True,
+                )
+            )
+    elif current_changed:
         sections.append(
             "NEW GOAL\n\n"
+            + _goal_context(current, fallback, include_fallback=True)
+        )
+    elif fallback_changed:
+        sections.append(
+            "FALLBACK UPDATED\n\n"
             + _goal_context(current, fallback, include_fallback=True)
         )
     elif not sections and show_normal:
@@ -309,6 +332,7 @@ def _goal_update_text(
         )
 
     state.current_key = current_key
+    state.fallback_key = fallback_key
     state.statuses = statuses
     return "\n\n".join(section for section in sections if section)
 
@@ -318,11 +342,15 @@ def _goal_context(
     fallback: GoalRuntime | None,
     *,
     include_fallback: bool,
+    heading: str = "Goal",
 ) -> str:
     if current is None:
-        return "Goal:\nNone"
+        sections = [f"{heading}:\nNone"]
+        if include_fallback:
+            sections.append("Fallback:\nNone")
+        return "\n\n".join(sections)
     sections = [
-        "Goal:\n" + _sentence(current.definition.title),
+        f"{heading}:\n" + _sentence(current.definition.title),
         "Plan:\n" + textwrap.fill(current.definition.plan, width=50),
     ]
     if include_fallback:
