@@ -1,0 +1,93 @@
+[Event "Accelerated London Goal Course"]
+[Site "CodeChess"]
+[Date "2026.07.23"]
+[Round "-"]
+[White "Student"]
+[Black "Goal Tree"]
+[Result "*"]
+[Annotator "CodeChess Goal Learn Mode"]
+[Opening "Accelerated London System"]
+
+{The opening begins with the flexible London core. Higher-priority goals may preempt it when Black
+creates an opportunity. If a goal becomes impossible, the next active goal becomes the fallback.
+Universal tactical rules may interrupt any goal, and favorable terminals may end the opening early.}
+1. d4 {Claim central space and keep the c-pawn flexible. The current goal is to build the flexible
+London core.} 1... d5 {Black has chosen a quiet center. No higher-priority opportunity has appeared,
+so continue the flexible core.} (1... Nf6 {Black develops without committing the center. Continue
+the flexible core.} 2. Bf4 {Develop the London bishop while keeping the b1 knight flexible.} 2... d5
+{Black establishes d5. Watch for a slow move that leaves the king and c7 vulnerable.} (2... g6
+{Black commits to a kingside fianchetto. The Nc3-e4 center becomes the current goal and the flexible
+core retires.} 3. Nc3 {Develop actively because the broad center requires the b1 knight on c3.} 3...
+Bg7 {Black completes the fianchetto. Claim more central space.} 4. e4 {Build the broad d4-e4
+center.} 4... d6 {Black prepares central resistance. Coordinate the queen and king.} 5. Qd2 {Qd2
+supports attacking ideas and prepares queenside castling.} 5... O-O {Black castles kingside.
+Complete the committed plan by castling the other way.} 6. O-O-O {The fianchetto-center goal is
+complete.}) 3. e3 {Support d4. Nf3 is normally next unless a stronger knight opportunity appears.}
+3... h6 {Black spends a slow tempo. The c7 fork becomes the highest-priority goal; the flexible core
+is the fallback.} 4. Nc3 {Begin the route to b5. Because the knight committed to c3, normal
+development from Nc3 becomes the fallback.} 4... e6 {Black still has the king on e8, the rook on a8
+and the pawn on c7. The fork remains viable.} 5. Nb5 {Threaten Nxc7+ before Black can defend or
+castle.} 5... Be7 {Black develops but does not remove the c7 tactic. Execute the fork.} (5... Na6
+{The a6 knight defends c7. The fork goal is no longer viable, so the Nc3 development fallback
+becomes current.} 6. Nf3 {Do not force the failed tactic. Continue normal development.} 6... c6
+{Black removes the c7 target and attacks the knight on b5. A universal retreat rule overrides the
+development goal.} 7. Nc3 {Return the knight to its useful central square.} 7... Bd6 {Black
+challenges the London bishop. Preserve it before continuing the fallback goal.} 8. Bg3 {The bishop
+retreats safely. The fork is gone, but the position remains healthy.} 8... O-O {Black secures the
+king. Develop the remaining bishop.} 9. Bd3 {Bd3 completes the minor-piece development.} 9... Re8
+{Black centralizes the rook. Finish by castling.} 10. O-O {The Nc3 development fallback is
+complete.}) (5... Bd6 {Black attacks the bishop and blocks its support of c7. The fork goal retires
+immediately.} 6. Bg3 {Preserve the bishop even though the original fork plan has ended.} 6... Bxg3
+{Black exchanges the bishop. Recapture before returning to development.} 7. hxg3 {The h-pawn
+recaptures and opens the h-file. Continue with the Nc3 fallback.} 7... O-O {Black castles. Develop
+the kingside knight.} 8. Nf3 {Resume ordinary development after the tactical plan was prevented.}
+8... c6 {Black removes the c7 target and attacks the knight on b5, so retreat before developing.}
+9. Nc3 {Return the knight to its useful central square.} 9... Nbd7 {Black completes development.
+Develop the remaining bishop.} 10. Bd3 {Bd3 prepares castling and points toward the kingside.}
+10... Re8 {Black centralizes the rook. Secure the king.} 11. O-O
+{The fallback development goal is complete.}) 6. Nxc7+ {The c7-fork goal is complete. The remaining
+move is tactical conversion.} 6... Kf8 {The king moves away while the rook remains on a8.} 7. Nxa8
+{Take the rook and end the opening flow with a large material advantage.}) (1... c5 {Black
+challenges before playing d5. A universal space-gaining rule overrides the normal London core.} 2.
+d5 {White gains space. The broad-center Benoni goal now becomes current.} 2... Nf6 {Black attacks
+the center. Support it with the b1 knight.} 3. Nc3 {Nc3 supports d5 and prepares e4.} 3... d6 {Black
+prepares to challenge the advanced center.} 4. e4 {Establish the broad d5-e4 center.} 4... g6 {Black
+prepares a fianchetto, but the Benoni goal remains the governing plan.} 5. Nf3 {Develop and support
+the center.} 5... Bg7 {Black completes the fianchetto. Develop the remaining bishop safely.} 6. Be2
+{Be2 is appropriate because the center, not h7 pressure, is the main priority.} 6... O-O {Black
+secures the king. White should finish development.} 7. O-O {The broad-center goal is complete.})
+(1... e5 {Black offers the Englund pawn immediately. This concrete opportunity overrides every setup
+goal.} 2. dxe5 {Accept the pawn and end this opening flow. White is outside the normal London system
+but exits with an advantage.}) (1... Nc6 {Black develops unusually but has not yet changed the
+flexible-core goal.} 2. Bf4 {Develop the London bishop and watch the c7 diagonal.} 2... d5 {Black
+establishes d5 while the king and c7 pawn remain exposed.} 3. e3 {Support the center. Nf3 remains
+the default unless Black wastes a tempo.} 3... f6 {Black weakens the position and loses time. The
+c7-fork goal becomes highest priority.} 4. Nc3 {Start the knight route toward b5.} 4... Nb8 {Black
+retreats the knight but does not solve the c7 weakness.} 5. Nb5 {Threaten Nxc7+ while the bishop
+supports the capture.} 5... h5 {Another slow move leaves the tactic intact.} 6. Nxc7+ {Execute the
+checking fork.} 6... Qxc7 {Black captures the knight with the queen, but the bishop now wins the
+queen.} 7. Bxc7 {The universal tactical conversion wins the queen and ends the opening flow.}) 2.
+Bf4 {Develop the London bishop before e3. The b1 knight remains uncommitted.} 2... Nf6 {Black
+develops normally. There is still no reason to spend the b1 knight flexibility.} 3. e3 {Support d4
+and open the f1 bishop. Nf3 is the final step of the flexible core.} 3... e6 {Black confirms a quiet
+classical setup. Finish the flexible core before choosing Nbd2.} (3... Bf5 {The c8 bishop has left
+the queenside. The active c4 goal preempts the flexible core.} 4. c4 {Challenge d5 immediately and
+commit to the active London structure.} 4... e6 {Black supports d5. The active goal now calls for
+Nc3.} 5. Nc3 {Nc3 supports the c4 pressure and prepares queen activity.} 5... c6 {Black builds a
+Slav-style center. With the c8 bishop gone, b7 is a real target.} 6. Qb3 {Pressure b7 while the c4
+pawn challenges d5.} 6... Qb6 {Black offers a queen exchange while defending b7. Accepting it keeps
+the position comfortable.} 7. Qxb6 {Exchange queens rather than release the queenside pressure for
+nothing.} 7... axb6 {Black recaptures and accepts doubled queenside pawns. Continue development.} 8.
+Nf3 {The tactical queen decision is resolved. Resume the active development goal.} 8... Nbd7 {Black
+develops normally. The f1 bishop belongs safely on e2 here.} 9. Be2 {Be2 develops without
+interfering with the active queenside structure.} 9... Be7 {Black prepares to castle. White should
+complete the goal by doing the same.} 10. O-O {The active c4 goal is complete: pressure was created
+and development is finished.}) 4. Nf3 {The flexible core is complete. The quiet London becomes the
+current goal while Nc3 remains unused.} 4... Be7 {Black prepares to castle and has not offered a
+credible c7 fork window. Commit to the quiet plan.} 5. Nbd2 {The b1 knight commits to d2 only after
+the active Nc3 plans have been passed over.} 5... O-O {Black has secured the king, so the checking
+c7 fork is no longer available.} 6. c3 {The c3 pawn establishes the stable London triangle and
+reinforces d4.} 6... c5 {Black challenges the center, but c3 now supports the d4 pawn.} 7. Bd3
+{Develop toward h7 and prepare to secure the king.} 7... Nc6 {Black completes development. Finish
+the quiet goal by castling.} 8. O-O {The quiet London goal is complete: the structure is established
+and the king is safe.} *

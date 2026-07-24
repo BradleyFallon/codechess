@@ -1,0 +1,442 @@
+flow: accelerated-london-goals
+version: 0.2
+side: white
+
+# Proposed goal-enabled syntax.
+#
+# Goal lifecycle:
+# - goals are evaluated in source order; the first active goal is current
+# - the next active goal is the fallback shown by learn mode
+# - when latches activation
+# - while is a continuous viability condition
+# - complete is checked before while after every move
+# - a false while retires the goal permanently for the current session
+#
+# Rule eligibility:
+# - rules with goals are eligible only when one listed goal is current
+# - rules without goals are universal and may interrupt any goal
+# - source order still resolves candidate priority
+
+flags:
+    active-c4
+    traditional
+    fork-launched
+
+conditions:
+    immediate-c5 =
+        at(d, d4) &&
+        square.c5.has(enemy.pawn) &&
+        square.d5.empty()
+
+    benoni =
+        played(d.develop.d5)
+
+    fianchetto =
+        played(bq.develop.f4) &&
+        square.g6.has(enemy.pawn) &&
+        !benoni
+
+    early-bf5 =
+        at(bq, f4) &&
+        square.d5.has(enemy.pawn) &&
+        square.f5.has(enemy.bishop)
+
+    london-core-ready =
+        bq.developed() &&
+        e.developed() &&
+        nk.developed()
+
+    quiet-structure =
+        at(d, d4) &&
+        square.d5.has(enemy.pawn) &&
+        !active-c4 &&
+        !fianchetto &&
+        !benoni
+
+    fork-trigger =
+        at(bq, f4) &&
+        at(nq, b1) &&
+        e.developed() &&
+        square.d5.has(enemy.pawn) &&
+        (
+            square.h6.has(enemy.pawn) ||
+            square.f6.has(enemy.pawn)
+        )
+
+    fork-viable =
+        bq.controls(c7) &&
+        square.c7.has(enemy.pawn) &&
+        square.e8.has(enemy.king) &&
+        square.a8.has(enemy.rook) &&
+        !square.a6.has(enemy.pawn) &&
+        !square.a6.has(enemy.knight) &&
+        !square.c6.has(enemy.pawn) &&
+        !square.b4.has(enemy.bishop) &&
+        !square.d6.has(enemy.bishop)
+
+    fork-opportunity =
+        fork-trigger &&
+        fork-viable
+
+    active-c4-viable =
+        at(d, d4) &&
+        square.d5.has(enemy.pawn) &&
+        (
+            at(c, c2) ||
+            at(c, c4)
+        ) &&
+        !fianchetto &&
+        !benoni
+
+    fianchetto-viable =
+        at(d, d4) &&
+        (
+            square.g6.has(enemy.pawn) ||
+            square.g7.has(enemy.bishop)
+        )
+
+    benoni-viable =
+        at(d, d5)
+
+goals:
+    c7-fork:
+        when: fork-opportunity
+        while: fork-viable
+        complete: played(nq.capture.c7)
+        title: Exploit the c7 fork
+        plan: Develop the b1 knight through c3 and b5, then play Nxc7+ while the London bishop supports c7.
+        abandoned: Give up the fork if Black secures the king, removes c7, defends the route, or breaks the bishop diagonal.
+
+    active-c4:
+        when: early-bf5
+        while: active-c4-viable
+        complete:
+            played(c.develop.c4) &&
+            nq.developed() &&
+            q.developed() &&
+            nk.developed() &&
+            bk.developed() &&
+            played(k.castle.kingside)
+        title: Build the active c4 London
+        plan: Challenge d5 with c4, develop Nc3, create queen pressure, and finish development.
+        abandoned: Retire the plan if the central structure changes and c4 no longer serves the pressure on d5.
+
+    fianchetto-center:
+        when: fianchetto
+        while: fianchetto-viable
+        complete:
+            nq.developed() &&
+            played(e.develop.e4) &&
+            played(q.develop.d2) &&
+            played(k.castle.queenside)
+        title: Build the Nc3-e4 attacking center
+        plan: Use Nc3 and e4, coordinate with Qd2, then castle long for kingside play.
+        abandoned: Retire the plan if the fianchetto structure disappears or the d4 center is replaced.
+
+    benoni-center:
+        when: benoni
+        while: benoni-viable
+        complete:
+            nq.developed() &&
+            played(e.develop.e4) &&
+            nk.developed() &&
+            bk.developed() &&
+            played(k.castle.kingside)
+        title: Build and secure the broad center
+        plan: Support the advanced d5 pawn with Nc3 and e4, then complete development and castle.
+        abandoned: Retire the plan if White no longer has the advanced d5 pawn.
+
+    finish-nc3-development:
+        when:
+            nq.developed() &&
+            at(nq, c3) &&
+            !active-c4 &&
+            !fianchetto &&
+            !benoni
+        while:
+            !played(k.castle.kingside) &&
+            !active-c4 &&
+            !fianchetto &&
+            !benoni
+        complete:
+            nk.developed() &&
+            bk.developed() &&
+            played(k.castle.kingside)
+        title: Finish development from the Nc3 setup
+        plan: Keep the useful knight on c3, develop Nf3 and Bd3, then castle kingside.
+        abandoned: Retire this fallback if a more specific structural goal takes over.
+
+    quiet-london:
+        when:
+            london-core-ready &&
+            quiet-structure &&
+            at(nq, b1)
+        while:
+            quiet-structure &&
+            (
+                at(nq, b1) ||
+                at(nq, d2)
+            )
+        complete:
+            traditional &&
+            at(nq, d2) &&
+            bk.developed() &&
+            played(k.castle.kingside)
+        title: Complete the quiet London
+        plan: Commit to Nbd2 and c3 only after the active Nc3 options are no longer being pursued, then play Bd3 and castle.
+        abandoned: Retire the quiet setup if the center changes or the b1 knight commits to c3 for a stronger plan.
+
+    london-core:
+        while:
+            (
+                at(d, d2) ||
+                at(d, d4)
+            ) &&
+            at(nq, b1) &&
+            !benoni &&
+            !fianchetto
+        complete: london-core-ready
+        title: Build the flexible London core
+        plan: Develop Bf4, e3 and Nf3 while preserving the b1 knight choice between c3 and d2.
+        abandoned: Retire the flexible core once White commits the b1 knight or enters a different central structure.
+
+# Universal tactical and forcing rules come first.
+
+d:
+    capture.e5:
+        when: played(d.develop.d4)
+        if:
+            at(d, d4) &&
+            square.e5.has(enemy.pawn) &&
+            canCaptureOn(e5)
+        terminal: out-of-system-advantage
+        why: Accept the Englund pawn. The normal London setup is less important than taking the offered material.
+
+    develop.d5:
+        when: played(d.develop.d4)
+        if: immediate-c5
+        why: Gain space when Black challenges with c5 before establishing d5.
+
+    develop.d4:
+        goals:
+            london-core
+        why: Claim central space while keeping the c-pawn flexible.
+
+bq:
+    capture.c7:
+        when: played(nq.capture.c7)
+        if:
+            square.c7.has(enemy.queen) &&
+            canCaptureOn(c7)
+        terminal: queen-won
+        why: Recapture the queen after it takes the knight on c7.
+
+    develop.g3:
+        when: played(bq.develop.f4)
+        if:
+            at(bq, f4) &&
+            square.d6.has(enemy.bishop)
+        why: Preserve the London bishop when Black challenges it with Bd6.
+
+    develop.f4:
+        goals:
+            london-core
+        when: d.developed()
+        if:
+            !immediate-c5 &&
+            !square.e5.has(enemy.pawn)
+        why: Develop the London bishop before e3 closes the diagonal.
+
+h:
+    capture.g3:
+        when: captured(bq)
+        if:
+            square.g3.has(enemy.bishop) &&
+            canCaptureOn(g3)
+        why: Recapture on g3 and open the h-file.
+
+e:
+    develop.e4:
+        goals:
+            fianchetto-center
+            benoni-center
+        when: nq.developed()
+        why: Build the broad center required by the current active goal.
+
+    develop.e3:
+        goals:
+            london-core
+        when: bq.developed()
+        why: Support d4 and open the f1 bishop without committing the b1 knight.
+
+nq:
+    retreat.c3:
+        when: played(nq.develop.b5)
+        if:
+            at(nq, b5) &&
+            square.c6.has(enemy.pawn)
+        why: Return the knight when c6 removes the c7 target and attacks b5.
+
+    capture.a8:
+        when: played(nq.capture.c7)
+        if:
+            at(nq, c7) &&
+            square.a8.has(enemy.rook) &&
+            canCaptureOn(a8)
+        terminal: fork-rook-won
+        why: Complete the checking fork by taking the rook.
+
+    capture.c7:
+        goals:
+            c7-fork
+        when: played(nq.develop.b5)
+        if:
+            at(nq, b5) &&
+            fork-viable &&
+            canCaptureOn(c7)
+        why: Execute Nxc7+ while the king, rook and bishop support geometry remain favorable.
+
+    develop.b5:
+        goals:
+            c7-fork
+        when: nq.developed()
+        if:
+            at(nq, c3) &&
+            fork-viable
+        set: fork-launched
+        why: Threaten Nxc7+ before Black can defend or castle.
+
+    develop.c3:
+        goals:
+            c7-fork
+            active-c4
+            fianchetto-center
+            benoni-center
+        if:
+            at(nq, b1) &&
+            (
+                !early-bf5 ||
+                active-c4
+            )
+        why: Use Nc3 when the current goal requires active central play or the c7 route.
+
+    develop.d2:
+        goals:
+            quiet-london
+        if: at(nq, b1)
+        why: Commit the knight to d2 only after the active Nc3 plans are no longer being pursued.
+
+c:
+    develop.c4:
+        goals:
+            active-c4
+        if: at(c, c2)
+        set: active-c4
+        why: Challenge d5 after Black develops the c8 bishop early.
+
+    develop.c3:
+        goals:
+            quiet-london
+        when: nq.developed()
+        if: at(c, c2)
+        set: traditional
+        why: Establish the stable London triangle once the quiet goal is selected.
+
+q:
+    capture.b6:
+        when: q.developed()
+        if:
+            at(q, b3) &&
+            square.b6.has(enemy.queen) &&
+            canCaptureOn(b6)
+        why: Accept the queen exchange when Black answers Qb3 with Qb6.
+
+    develop.b3:
+        goals:
+            active-c4
+        when: nq.developed()
+        if:
+            at(q, d1) &&
+            !square.c8.has(enemy.bishop) &&
+            square.b7.has(enemy.pawn)
+        why: Pressure b7 after the c8 bishop leaves.
+
+    develop.d2:
+        goals:
+            fianchetto-center
+        when: played(e.develop.e4)
+        if: at(q, d1)
+        why: Coordinate the broad center and prepare queenside castling.
+
+nk:
+    develop.f3:
+        goals:
+            london-core
+            active-c4
+            benoni-center
+            finish-nc3-development
+        if:
+            (
+                e.developed() ||
+                q.developed() ||
+                benoni ||
+                nq.developed()
+            ) &&
+            (
+                !benoni ||
+                played(e.develop.e4)
+            ) &&
+            (
+                !early-bf5 ||
+                played(q.capture.b6)
+            ) &&
+            !at(nq, c7) &&
+            !square.c7.has(enemy.queen) &&
+            !square.g3.has(enemy.bishop) &&
+            !(
+                at(bq, f4) &&
+                square.d6.has(enemy.bishop)
+            )
+        why: Develop the kingside knight while preserving or completing the current structure.
+
+bk:
+    develop.e2:
+        goals:
+            active-c4
+            benoni-center
+        when: nk.developed()
+        why: Develop safely in active c4 and broad-center structures.
+
+    develop.d3:
+        goals:
+            quiet-london
+            finish-nc3-development
+        when: nk.developed()
+        if:
+            !at(nq, b1) &&
+            !at(nq, b5) &&
+            (
+                traditional ||
+                !at(nq, d2)
+            ) &&
+            !(
+                at(bq, f4) &&
+                square.d6.has(enemy.bishop)
+            )
+        why: Aim toward h7 and complete normal kingside development.
+
+k:
+    castle.queenside:
+        goals:
+            fianchetto-center
+        when: played(q.develop.d2)
+        why: Castle long after committing to the Nc3-e4 fianchetto plan.
+
+    castle.kingside:
+        goals:
+            quiet-london
+            finish-nc3-development
+            active-c4
+            benoni-center
+        when: bk.developed()
+        why: Secure the king after the current development goal has been completed.
