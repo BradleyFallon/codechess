@@ -20,6 +20,7 @@ class RuleDefinition:
     set_flags: tuple[str, ...] = ()
     why: str | None = None
     terminal: str | None = None
+    goals: tuple[str, ...] = ()
     source_order: int = 0
 
 

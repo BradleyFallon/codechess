@@ -18,6 +18,7 @@ from chessflow.flow_language.expressions import (
     parse_expression,
 )
 from chessflow.flow_runtime.action import Action, ActionKind, CastleSide
+from chessflow.flow_runtime.goal import GoalDefinition
 from chessflow.flow_runtime.rule import RuleDefinition
 
 
@@ -64,6 +65,7 @@ class FlowParser:
         side: Color | None = None
         flags: set[str] = set()
         conditions: dict[str, Expression] = {}
+        goals: list[GoalDefinition] = []
         rules: list[RuleDefinition] = []
         owner: str | None = None
         index = 0
@@ -94,6 +96,10 @@ class FlowParser:
             if line.indent == 0 and line.text in {"conditions:", "conditions{"}:
                 index = self._parse_conditions(lines, index + 1, conditions)
                 continue
+            if line.indent == 0 and line.text == "goals:":
+                goals, index = self._parse_goals(lines, index + 1)
+                owner = None
+                continue
             if line.indent == 0 and line.text.endswith(":"):
                 candidate = line.text[:-1].strip()
                 if candidate not in _PIECE_CODES:
@@ -117,9 +123,15 @@ class FlowParser:
             raise FlowSyntaxError(
                 "Version 0.1 currently supports white-side flows only"
             )
-        self._validate(flags, conditions, rules)
+        self._validate(flags, conditions, goals, rules)
         return FlowDefinition(
-            name, version, side, frozenset(flags), conditions, tuple(rules)
+            name,
+            version,
+            side,
+            frozenset(flags),
+            conditions,
+            tuple(goals),
+            tuple(rules),
         )
 
     def _parse_flags(self, lines: list[_Line], index: int, flags: set[str]) -> int:
@@ -165,6 +177,101 @@ class FlowParser:
                 self._error(line, f"Invalid condition {name!r}: {exc}")
         return index
 
+    def _parse_goals(
+        self,
+        lines: list[_Line],
+        index: int,
+    ) -> tuple[list[GoalDefinition], int]:
+        goals: list[GoalDefinition] = []
+        keys: set[str] = set()
+        while index < len(lines) and lines[index].indent > 0:
+            line = lines[index]
+            if not line.text.endswith(":"):
+                self._error(line, "Goal must use 'key:'")
+            key = line.text[:-1].strip()
+            if not re.fullmatch(r"[\w-]+", key):
+                self._error(line, f"Invalid goal key: {key!r}")
+            if key in keys:
+                self._error(line, f"Duplicate goal: {key!r}")
+            keys.add(key)
+            goal_indent = line.indent
+            values: dict[str, str] = {}
+            index += 1
+            while index < len(lines) and lines[index].indent > goal_indent:
+                field = lines[index]
+                if ":" not in field.text:
+                    self._error(field, "Goal field must use 'name: value'")
+                name, value = (
+                    part.strip()
+                    for part in field.text.split(":", maxsplit=1)
+                )
+                if name not in {
+                    "when",
+                    "while",
+                    "complete",
+                    "title",
+                    "plan",
+                    "abandoned",
+                }:
+                    self._error(field, f"Unknown goal field: {name!r}")
+                if name in values:
+                    self._error(field, f"Duplicate goal field: {name!r}")
+                index += 1
+                continuation = [value] if value else []
+                while (
+                    index < len(lines)
+                    and lines[index].indent > field.indent
+                ):
+                    continuation.append(lines[index].text)
+                    index += 1
+                values[name] = " ".join(continuation)
+
+            required = {
+                "while",
+                "complete",
+                "title",
+                "plan",
+                "abandoned",
+            }
+            missing = sorted(
+                name for name in required if not values.get(name)
+            )
+            if missing:
+                self._error(
+                    line,
+                    f"Goal {key!r} is missing fields: {missing}",
+                )
+
+            def expression(name: str) -> Expression | None:
+                value = values.get(name)
+                if value is None:
+                    return None
+                try:
+                    return parse_expression(value)
+                except ValueError as exc:
+                    self._error(
+                        line,
+                        f"Invalid goal {name!r} expression: {exc}",
+                    )
+
+            while_condition = expression("while")
+            complete = expression("complete")
+            assert while_condition is not None
+            assert complete is not None
+            goals.append(
+                GoalDefinition(
+                    key=key,
+                    when=expression("when"),
+                    while_condition=while_condition,
+                    complete=complete,
+                    title=values["title"],
+                    plan=values["plan"],
+                    abandoned=values["abandoned"],
+                    source_order=len(goals),
+                )
+            )
+        return goals, index
+
     def _parse_rule(
         self, lines: list[_Line], index: int, owner: str, source_order: int
     ) -> tuple[RuleDefinition, int]:
@@ -180,7 +287,15 @@ class FlowParser:
             if ":" not in field.text:
                 self._error(field, "Rule field must use 'name: value'")
             key, value = (part.strip() for part in field.text.split(":", maxsplit=1))
-            if key not in {"when", "until", "if", "set", "why", "terminal"}:
+            if key not in {
+                "when",
+                "until",
+                "if",
+                "set",
+                "why",
+                "terminal",
+                "goals",
+            }:
                 self._error(field, f"Unknown rule field: {key!r}")
             if key in values:
                 self._error(field, f"Duplicate rule field: {key!r}")
@@ -203,6 +318,15 @@ class FlowParser:
         set_flags = tuple(
             part for part in re.split(r"[\s,]+", values.get("set", "")) if part
         )
+        goal_keys = tuple(
+            part
+            for part in re.split(r"[\s,]+", values.get("goals", ""))
+            if part
+        )
+        if "goals" in values and not goal_keys:
+            self._error(line, "Rule goals list cannot be empty")
+        if len(goal_keys) != len(set(goal_keys)):
+            self._error(line, "Rule goals list contains duplicates")
         return (
             RuleDefinition(
                 action=action,
@@ -212,6 +336,7 @@ class FlowParser:
                 set_flags=set_flags,
                 why=values.get("why") or None,
                 terminal=values.get("terminal") or None,
+                goals=goal_keys,
                 source_order=source_order,
             ),
             index,
@@ -235,6 +360,7 @@ class FlowParser:
         self,
         flags: set[str],
         conditions: dict[str, Expression],
+        goals: list[GoalDefinition],
         rules: list[RuleDefinition],
     ) -> None:
         keys: set[str] = set()
@@ -259,6 +385,14 @@ class FlowParser:
                 condition_expression, allowed_names, keys, f"condition {name!r}"
             )
         for rule in rules:
+            unknown_goals = set(rule.goals) - {
+                goal.key for goal in goals
+            }
+            if unknown_goals:
+                raise FlowSyntaxError(
+                    f"Rule {rule.action.canonical_key} references "
+                    f"unknown goals: {sorted(unknown_goals)}"
+                )
             for field_name, rule_expression in (
                 ("when", rule.when),
                 ("until", rule.until),
@@ -271,6 +405,105 @@ class FlowParser:
                         keys,
                         f"{field_name} on {rule.action.canonical_key}",
                     )
+        for goal in goals:
+            for field_name, goal_expression in (
+                ("when", goal.when),
+                ("while", goal.while_condition),
+                ("complete", goal.complete),
+            ):
+                if goal_expression is None:
+                    continue
+                location = f"{field_name} on goal {goal.key!r}"
+                self._validate_expression(
+                    goal_expression,
+                    allowed_names,
+                    keys,
+                    location,
+                )
+                self._validate_global_expression(
+                    goal_expression,
+                    conditions,
+                    location,
+                )
+
+    def _validate_global_expression(
+        self,
+        expression: Expression,
+        conditions: dict[str, Expression],
+        location: str,
+        visited_conditions: set[str] | None = None,
+    ) -> None:
+        visited = set() if visited_conditions is None else visited_conditions
+        if isinstance(expression, Name):
+            condition = conditions.get(expression.value)
+            if condition is None or expression.value in visited:
+                return
+            visited.add(expression.value)
+            self._validate_global_expression(
+                condition,
+                conditions,
+                location,
+                visited,
+            )
+            return
+        if isinstance(expression, Not):
+            self._validate_global_expression(
+                expression.operand,
+                conditions,
+                location,
+                visited,
+            )
+            return
+        if isinstance(expression, BooleanOperation):
+            self._validate_global_expression(
+                expression.left,
+                conditions,
+                location,
+                visited,
+            )
+            self._validate_global_expression(
+                expression.right,
+                conditions,
+                location,
+                visited,
+            )
+            return
+        if not isinstance(expression, Call):
+            return
+
+        parts = expression.name.lower().rsplit(".", maxsplit=1)
+        receiver = parts[0] if len(parts) == 2 else None
+        predicate = parts[-1]
+        owner_relative = (
+            receiver is None
+            and (
+                predicate
+                in {
+                    "moved",
+                    "developed",
+                    "controls",
+                    "canmoveto",
+                    "cancaptureon",
+                }
+                or (
+                    predicate == "at"
+                    and len(expression.arguments) == 1
+                )
+                or (
+                    predicate in {"attacked", "defended"}
+                    and not expression.arguments
+                )
+            )
+        ) or (
+            receiver is not None
+            and not receiver.startswith("square.")
+            and predicate == "moved"
+        )
+        if owner_relative:
+            raise FlowSyntaxError(
+                f"Owner-relative predicate {expression.name}() "
+                f"is not allowed in {location}"
+            )
 
     def _validate_expression(
         self,

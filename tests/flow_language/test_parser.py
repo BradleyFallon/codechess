@@ -43,6 +43,81 @@ def test_retreat_action_parses_with_its_own_canonical_key() -> None:
     assert action.canonical_key == "nq.retreat.c3"
 
 
+def test_goal_definitions_and_rule_membership_parse() -> None:
+    definition = parse_flow(
+        """
+        flow goals
+        version 0.2
+        side white
+        goals:
+            center:
+                while: at(d, d2) || at(d, d4)
+                complete: played(d.develop.d4)
+                title: Claim the center
+                plan: Play d4 and keep useful flexibility.
+                abandoned: Retire if the d-pawn can no longer claim d4.
+        d:
+            develop.d4:
+                goals:
+                    center
+        """
+    )
+
+    assert len(definition.goals) == 1
+    goal = definition.goals[0]
+    assert goal.key == "center"
+    assert goal.when is None
+    assert goal.title == "Claim the center"
+    assert goal.plan == "Play d4 and keep useful flexibility."
+    assert definition.rules[0].goals == ("center",)
+
+
+def test_parser_rejects_unknown_and_empty_rule_goal_membership() -> None:
+    with pytest.raises(FlowSyntaxError, match="unknown goals"):
+        parse_flow(
+            """
+            flow unknown-goal
+            version 0.2
+            side white
+            d:
+                develop.d4:
+                    goals: missing
+            """
+        )
+
+    with pytest.raises(FlowSyntaxError, match="cannot be empty"):
+        parse_flow(
+            """
+            flow empty-goals
+            version 0.2
+            side white
+            d:
+                develop.d4:
+                    goals:
+            """
+        )
+
+
+def test_goal_expressions_reject_owner_relative_predicates() -> None:
+    with pytest.raises(FlowSyntaxError, match="Owner-relative predicate"):
+        parse_flow(
+            """
+            flow contextual-goal
+            version 0.2
+            side white
+            goals:
+                center:
+                    while: at(d4)
+                    complete: false
+                    title: Claim the center
+                    plan: Play d4.
+                    abandoned: The d-pawn moved elsewhere.
+            d:
+                develop.d4:
+            """
+        )
+
+
 def test_parser_rejects_undeclared_set_flags() -> None:
     with pytest.raises(FlowSyntaxError, match="undeclared flags"):
         parse_flow(
