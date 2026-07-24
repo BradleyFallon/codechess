@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from chessflow.flow_language.ast import FlowDefinition
+from chessflow.flow_runtime import GoalDeadEndError
 from chessflow.repertoire import RepertoireNode
 from chessflow.session import FlowSession
 
@@ -60,7 +61,10 @@ class ConformanceRunner:
             for child in repertoire_node.children
             if child.san is not None
         )
-        candidates = tuple(session.runtime.evaluate_turn(session.board))
+        try:
+            candidates = tuple(session.runtime.evaluate_turn(session.board))
+        except GoalDeadEndError as exc:
+            raise exc.at_path(_format_san_path(path)) from exc
         candidate_records = tuple(
             CandidateRecord(
                 action_key=candidate.rule.definition.action.canonical_key,
@@ -132,7 +136,7 @@ class ConformanceRunner:
             assert child.move is not None
             assert child.san is not None
             branch = session.clone()
-            branch.board.push(child.move)
+            branch.runtime.push_opponent(child.move, branch.board)
             child_path = (*path, child.san)
             result.children.append(self._walk(child, branch, child_path))
         return result
@@ -143,3 +147,15 @@ def run_conformance(
     repertoire: RepertoireNode,
 ) -> ConformanceResult:
     return ConformanceRunner(definition, repertoire).run()
+
+
+def _format_san_path(path: tuple[str, ...]) -> str:
+    if not path:
+        return "(starting position)"
+    parts: list[str] = []
+    for ply, san in enumerate(path):
+        if ply % 2 == 0:
+            parts.append(f"{ply // 2 + 1}.{san}")
+        else:
+            parts.append(san)
+    return " ".join(parts)

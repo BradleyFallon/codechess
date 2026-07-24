@@ -2,10 +2,17 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import chess
+
 from chessflow.chess_model import FlowBoard, Piece
 from chessflow.flow_language.ast import FlowDefinition
 from chessflow.flow_runtime.candidate import Candidate
 from chessflow.flow_runtime.evaluator import EvaluationContext, evaluate
+from chessflow.flow_runtime.goal import (
+    GoalDeadEndError,
+    GoalRuntime,
+    GoalStatus,
+)
 from chessflow.flow_runtime.resolver import resolve_action
 from chessflow.flow_runtime.rule import (
     PieceRuleCollection,
@@ -24,7 +31,26 @@ class FlowRuntime:
         self.executed_action_keys: set[str] = set()
         self.reached_terminals: list[str] = []
         self._rules_by_action_key: dict[str, RuleRuntime] = {}
+        self._goals_by_key: dict[str, GoalRuntime] = {}
         self._bind_rules_to_pieces(board)
+        self._bind_goals(board)
+        self.update_goals(board)
+
+    def _bind_goals(self, board: FlowBoard) -> None:
+        for definition in self.definition.goals:
+            status = (
+                GoalStatus.ACTIVE
+                if definition.when is None
+                else GoalStatus.PENDING
+            )
+            runtime = GoalRuntime(
+                definition=definition,
+                status=status,
+                activated_at_ply=board.ply
+                if status is GoalStatus.ACTIVE
+                else None,
+            )
+            self._goals_by_key[definition.key] = runtime
 
     def _bind_rules_to_pieces(self, board: FlowBoard) -> None:
         for piece in board.flow_controlled_pieces():
@@ -82,11 +108,69 @@ class FlowRuntime:
                 piece.rules.transition(rule, RuleStatus.ACTIVE)
                 self._record_activation(rule, piece, board)
 
+    def update_goals(self, board: FlowBoard) -> None:
+        for goal in self._goals_in_definition_order():
+            if goal.status is not GoalStatus.PENDING:
+                continue
+            when = goal.definition.when
+            if when is not None and evaluate(
+                when,
+                EvaluationContext(board, self),
+            ):
+                goal.status = GoalStatus.ACTIVE
+                goal.activated_at_ply = board.ply
+
+        for goal in self._goals_in_definition_order():
+            if goal.status is not GoalStatus.ACTIVE:
+                continue
+            context = EvaluationContext(board, self)
+            if evaluate(goal.definition.complete, context):
+                goal.status = GoalStatus.COMPLETED
+                goal.completed_at_ply = board.ply
+            elif not evaluate(goal.definition.while_condition, context):
+                goal.status = GoalStatus.RETIRED
+                goal.retired_at_ply = board.ply
+
+    def current_goal(self, board: FlowBoard) -> GoalRuntime | None:
+        self.update_goals(board)
+        return next(
+            (
+                goal
+                for goal in self._goals_in_definition_order()
+                if goal.status is GoalStatus.ACTIVE
+            ),
+            None,
+        )
+
+    def fallback_goal(self, board: FlowBoard) -> GoalRuntime | None:
+        self.update_goals(board)
+        active = [
+            goal
+            for goal in self._goals_in_definition_order()
+            if goal.status is GoalStatus.ACTIVE
+        ]
+        return active[1] if len(active) > 1 else None
+
+    def goal_status(self, key: str) -> GoalStatus:
+        try:
+            return self._goals_by_key[key].status
+        except KeyError as exc:
+            raise KeyError(f"Unknown goal: {key!r}") from exc
+
     def collect_candidates(self, board: FlowBoard) -> list[Candidate]:
         candidates: list[Candidate] = []
+        current_goal = self.current_goal(board)
+        current_goal_key = (
+            None if current_goal is None else current_goal.definition.key
+        )
         for piece in board.flow_controlled_pieces():
             assert piece.rules is not None
             for rule in piece.rules.active:
+                if (
+                    rule.definition.goals
+                    and current_goal_key not in rule.definition.goals
+                ):
+                    continue
                 condition = rule.definition.if_condition
                 if condition is not None and not evaluate(
                     condition, EvaluationContext(board, self, rule)
@@ -100,9 +184,14 @@ class FlowRuntime:
 
     def evaluate_turn(self, board: FlowBoard) -> list[Candidate]:
         board.rebuild_relationships()
+        self.update_goals(board)
         self.expire_rules(board)
         self.activate_rules(board)
-        return self.collect_candidates(board)
+        candidates = self.collect_candidates(board)
+        current_goal = self.current_goal(board)
+        if not candidates and current_goal is not None:
+            raise GoalDeadEndError(current_goal.definition.key)
+        return candidates
 
     def execute(self, candidate: Candidate, board: FlowBoard) -> None:
         rule = candidate.rule
@@ -120,10 +209,18 @@ class FlowRuntime:
         self.flags.update(rule.definition.set_flags)
         if rule.definition.terminal is not None:
             self.reached_terminals.append(rule.definition.terminal)
+        self.update_goals(board)
+
+    def push_opponent(self, move: chess.Move, board: FlowBoard) -> None:
+        if board.chess_board.turn == self.definition.side.chess_color:
+            raise ValueError("Cannot push an opponent move on the flow side's turn")
+        board.push(move)
+        self.update_goals(board)
 
     def snapshot(self) -> FlowRuntimeSnapshot:
         from chessflow.session.snapshot import (
             FlowRuntimeSnapshot,
+            GoalRuntimeSnapshot,
             RuleRuntimeSnapshot,
         )
 
@@ -131,6 +228,16 @@ class FlowRuntime:
             flags=frozenset(self.flags),
             executed_action_keys=frozenset(self.executed_action_keys),
             reached_terminals=tuple(self.reached_terminals),
+            goals=tuple(
+                GoalRuntimeSnapshot(
+                    key=goal.definition.key,
+                    status=goal.status,
+                    activated_at_ply=goal.activated_at_ply,
+                    completed_at_ply=goal.completed_at_ply,
+                    retired_at_ply=goal.retired_at_ply,
+                )
+                for goal in self._goals_in_definition_order()
+            ),
             rules=tuple(
                 RuleRuntimeSnapshot(
                     action_key=rule.definition.action.canonical_key,
@@ -152,6 +259,12 @@ class FlowRuntime:
             for definition in self.definition.rules
         )
 
+    def _goals_in_definition_order(self) -> tuple[GoalRuntime, ...]:
+        return tuple(
+            self._goals_by_key[definition.key]
+            for definition in self.definition.goals
+        )
+
     @classmethod
     def restore(
         cls,
@@ -166,6 +279,12 @@ class FlowRuntime:
         if snapshot_keys != expected_keys:
             raise ValueError(
                 "Runtime snapshot rules do not match the flow definition"
+            )
+        expected_goal_keys = tuple(goal.key for goal in definition.goals)
+        snapshot_goal_keys = tuple(goal.key for goal in snapshot.goals)
+        if snapshot_goal_keys != expected_goal_keys:
+            raise ValueError(
+                "Runtime snapshot goals do not match the flow definition"
             )
         unknown_flags = snapshot.flags - definition.declared_flags
         if unknown_flags:
@@ -183,6 +302,12 @@ class FlowRuntime:
         runtime.flags = set(snapshot.flags)
         runtime.executed_action_keys = set(snapshot.executed_action_keys)
         runtime.reached_terminals = list(snapshot.reached_terminals)
+        for goal_snapshot in snapshot.goals:
+            goal = runtime._goals_by_key[goal_snapshot.key]
+            goal.status = goal_snapshot.status
+            goal.activated_at_ply = goal_snapshot.activated_at_ply
+            goal.completed_at_ply = goal_snapshot.completed_at_ply
+            goal.retired_at_ply = goal_snapshot.retired_at_ply
         for rule_snapshot in snapshot.rules:
             rule = runtime._rules_by_action_key[rule_snapshot.action_key]
             owner = board.flow_piece(rule.definition.action.owner_code)

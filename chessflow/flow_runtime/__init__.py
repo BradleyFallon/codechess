@@ -1,5 +1,11 @@
 from chessflow.flow_runtime.action import Action, ActionKind, CastleSide
 from chessflow.flow_runtime.candidate import Candidate
+from chessflow.flow_runtime.goal import (
+    GoalDeadEndError,
+    GoalDefinition,
+    GoalRuntime,
+    GoalStatus,
+)
 from chessflow.flow_runtime.rule import (
     PieceRuleCollection,
     RuleDefinition,
@@ -14,6 +20,10 @@ __all__ = [
     "Candidate",
     "CastleSide",
     "FlowRuntime",
+    "GoalDeadEndError",
+    "GoalDefinition",
+    "GoalRuntime",
+    "GoalStatus",
     "PieceRuleCollection",
     "RuleDefinition",
     "RuleRuntime",

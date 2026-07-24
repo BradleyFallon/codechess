@@ -7,6 +7,7 @@ from typing import Sequence
 
 from chessflow.conformance import run_conformance
 from chessflow.flow_language import parse_flow
+from chessflow.flow_runtime import GoalDeadEndError
 from chessflow.learn import LearnError, run_learn
 from chessflow.quiz import QuizError, run_quiz
 from chessflow.reporting import render_text_report
@@ -48,7 +49,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         else:
             result = run_conformance(definition, repertoire)
             print(render_text_report(result), end="")
-    except (LearnError, OSError, QuizError, ValueError) as exc:
+    except (
+        GoalDeadEndError,
+        LearnError,
+        OSError,
+        QuizError,
+        ValueError,
+    ) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 

@@ -7,6 +7,7 @@ from typing import TextIO
 import chess
 
 from chessflow.flow_language.ast import FlowDefinition
+from chessflow.flow_runtime import GoalDeadEndError
 from chessflow.reporting import format_san_path
 from chessflow.repertoire import RepertoireNode
 from chessflow.session import FlowSession
@@ -100,14 +101,20 @@ def run_quiz(
             ):
                 assert reference_node.move is not None
                 assert reference_node.san is not None
-                session.board.push(reference_node.move)
+                session.runtime.push_opponent(
+                    reference_node.move,
+                    session.board,
+                )
                 path = (*path, reference_node.san)
                 node_index += 1
                 continue
 
             question += 1
-            candidates = session.runtime.evaluate_turn(session.board)
             position = format_san_path(path)
+            try:
+                candidates = session.runtime.evaluate_turn(session.board)
+            except GoalDeadEndError as exc:
+                raise QuizError(str(exc.at_path(position))) from exc
             if not candidates:
                 raise QuizError(f"Flow dead end at {position}")
             if len(candidates) > 1:
